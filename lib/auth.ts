@@ -48,7 +48,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       session.accessToken = typeof token.accessToken === 'string' ? token.accessToken : undefined;
       if (session.user) {
-        session.user.id = token.sub ?? session.user.email ?? undefined;
+        // Use email as the stable userId — token.sub is a random UUID in NextAuth v5
+        // beta JWT mode that changes each session, making it unusable as a DB key.
+        session.user.id = session.user.email ?? token.sub ?? undefined;
       }
       return session;
     },
@@ -65,7 +67,8 @@ export type CurrentUser = {
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const session = await auth();
-  const id = session?.user?.id ?? session?.user?.email ?? undefined;
+  // Email is the stable identifier — always prefer it over session.user.id
+  const id = session?.user?.email ?? session?.user?.id ?? undefined;
   const accessToken = session?.accessToken;
 
   if (!id) return null;
