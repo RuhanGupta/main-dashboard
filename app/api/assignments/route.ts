@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
     userId: authResult.user.id,
   });
 
+  // Google Tasks sync is best-effort — never delete the DB record if it fails
   if (authResult.user.accessToken && assignment.dueDate) {
     try {
       const id = await createTask(authResult.user.accessToken, {
@@ -62,8 +63,8 @@ export async function POST(req: NextRequest) {
         { googleTaskId: id }
       );
     } catch (error) {
-      await Assignment.findOneAndDelete({ _id: assignment._id, userId: authResult.user.id });
-      return googleSyncErrorResponse(error);
+      // Log but don't delete — user can sync later via the sync button
+      console.error('[google-tasks] Failed to create task for new assignment:', error);
     }
   }
 

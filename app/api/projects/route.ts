@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
         { googleTaskId: id }
       );
     } catch (error) {
-      await Project.findOneAndDelete({ _id: project._id, userId: authResult.user.id });
-      return googleSyncErrorResponse(error);
+      // Log but don't delete — user can sync later via the sync button
+      console.error('[google-tasks] Failed to create task for new project:', error);
     }
   }
 
