@@ -11,6 +11,7 @@ const SubtaskSchema = new Schema({
   notes: String,
   googleTaskId: String,
   completed: { type: Boolean, default: false },
+  counselorVisible: { type: Boolean, default: true },
 }, { timestamps: true });
 
 const AssignmentSchema = new Schema({
@@ -24,6 +25,7 @@ const AssignmentSchema = new Schema({
   links: [LinkSchema],
   subtasks: [SubtaskSchema],
   googleTaskId: String,
+  counselorVisible: { type: Boolean, default: true },
 }, { timestamps: true });
 
 export const Assignment = models.Assignment ?? model('Assignment', AssignmentSchema);

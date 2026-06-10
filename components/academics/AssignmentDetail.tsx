@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Trash2, ExternalLink, Edit2, CheckCircle2, Circle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ExternalLink, Edit2, CheckCircle2, Circle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,12 +32,15 @@ export function AssignmentDetail({ id }: { id: string }) {
   useEffect(() => { fetch_(); }, [id]);
 
   const updateAssignment = async (updates: Partial<IAssignment>) => {
-    await fetch(`/api/assignments/${id}`, {
+    const body = { ...assignment, ...updates };
+    setAssignment(prev => prev ? { ...prev, ...updates } : prev);
+    const res = await fetch(`/api/assignments/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...assignment, ...updates }),
+      body: JSON.stringify(body),
     });
-    fetch_();
+    const updated = await res.json();
+    setAssignment(updated);
   };
 
   const addSubtask = async () => {
@@ -56,6 +59,12 @@ export function AssignmentDetail({ id }: { id: string }) {
 
   const deleteSubtask = async (idx: number) => {
     const subtasks = (assignment?.subtasks ?? []).filter((_, i) => i !== idx);
+    await updateAssignment({ subtasks });
+  };
+
+  const toggleSubtaskVisibility = async (idx: number) => {
+    const subtasks = [...(assignment?.subtasks ?? [])];
+    subtasks[idx] = { ...subtasks[idx], counselorVisible: subtasks[idx].counselorVisible === false ? true : false };
     await updateAssignment({ subtasks });
   };
 
@@ -100,6 +109,17 @@ export function AssignmentDetail({ id }: { id: string }) {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            title={assignment.counselorVisible === false ? 'Hidden from counselor' : 'Visible to counselor'}
+            onClick={() => updateAssignment({ counselorVisible: assignment.counselorVisible === false ? true : false })}
+            className={assignment.counselorVisible === false ? 'text-gray-400' : 'text-indigo-600'}
+          >
+            {assignment.counselorVisible === false
+              ? <><EyeOff className="w-3.5 h-3.5 mr-1" /> Hidden</>
+              : <><Eye className="w-3.5 h-3.5 mr-1" /> Visible</>}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
             <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
           </Button>
@@ -164,18 +184,34 @@ export function AssignmentDetail({ id }: { id: string }) {
                 {(assignment.subtasks ?? []).length === 0 ? (
                   <p className="text-sm text-gray-400 py-2">No subtasks yet.</p>
                 ) : (
-                  assignment.subtasks.map((s, idx) => (
-                    <div key={idx} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 group">
-                      <button onClick={() => toggleSubtask(idx)} className="text-gray-300 hover:text-green-500 transition-colors">
-                        {s.completed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4" />}
-                      </button>
-                      <span className={cn('text-sm flex-1', s.completed && 'line-through text-gray-400')}>{s.title}</span>
-                      {s.dueDate && <span className="text-xs text-gray-400">{formatDate(s.dueDate)}</span>}
-                      <button onClick={() => deleteSubtask(idx)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))
+                  assignment.subtasks.map((s, idx) => {
+                    const assignmentHidden = assignment.counselorVisible === false;
+                    const subtaskHidden = s.counselorVisible === false;
+                    const effectivelyHidden = assignmentHidden || subtaskHidden;
+                    return (
+                      <div key={idx} className={cn('flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 group', effectivelyHidden && 'opacity-60')}>
+                        <button onClick={() => toggleSubtask(idx)} className="text-gray-300 hover:text-green-500 transition-colors">
+                          {s.completed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4" />}
+                        </button>
+                        <span className={cn('text-sm flex-1', s.completed && 'line-through text-gray-400')}>{s.title}</span>
+                        {s.dueDate && <span className="text-xs text-gray-400">{formatDate(s.dueDate)}</span>}
+                        <button
+                          onClick={() => !assignmentHidden && toggleSubtaskVisibility(idx)}
+                          disabled={assignmentHidden}
+                          title={assignmentHidden ? 'Hidden because assignment is hidden' : subtaskHidden ? 'Hidden from counselor' : 'Visible to counselor'}
+                          className={cn(
+                            'opacity-0 group-hover:opacity-100 transition-all',
+                            assignmentHidden ? 'cursor-not-allowed text-gray-300' : subtaskHidden ? 'text-gray-400 hover:text-indigo-500' : 'text-indigo-400 hover:text-indigo-600'
+                          )}
+                        >
+                          {effectivelyHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                        <button onClick={() => deleteSubtask(idx)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </CardContent>

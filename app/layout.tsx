@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { Sidebar } from '@/components/shared/Sidebar';
+import { AppShell } from '@/components/shared/AppShell';
 import { SessionProvider } from '@/components/shared/SessionProvider';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -17,10 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
       <body className="h-full flex">
         <SessionProvider>
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto min-h-screen">
-            {children}
-          </main>
+          <AppShell>{children}</AppShell>
         </SessionProvider>
       </body>
     </html>

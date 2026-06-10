@@ -32,7 +32,7 @@ export async function GET() {
 
   const [assignments, projects, workouts] = await Promise.all([
     Assignment.find({ userId: user.id, dueDate: { $gte: start, $lte: end } }).sort({ dueDate: 1 }),
-    Project.find({ userId: user.id }).sort({ dueDate: 1 }),
+    Project.find({ userId: user.id, 'tasks.dueDate': { $gte: start, $lte: end } }).sort({ dueDate: 1 }),
     Workout.find({ userId: user.id, date: { $gte: start, $lte: end } }).sort({ date: 1 }),
   ]);
 

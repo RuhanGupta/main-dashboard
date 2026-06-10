@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Plus, BookOpen, Filter } from 'lucide-react';
+import { Plus, BookOpen, Filter, Share2, Copy, Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { IAssignment } from '@/types';
@@ -13,6 +13,40 @@ export function AcademicsContent() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const shareUrl = shareToken
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/counselor/${shareToken}`
+    : '';
+
+  const openShareModal = async () => {
+    setShowShareModal(true);
+    if (!shareToken) {
+      setShareLoading(true);
+      const res = await fetch('/api/counselor-share');
+      const data = await res.json();
+      setShareToken(data.token);
+      setShareLoading(false);
+    }
+  };
+
+  const regenerateLink = async () => {
+    setShareLoading(true);
+    const res = await fetch('/api/counselor-share', { method: 'POST' });
+    const data = await res.json();
+    setShareToken(data.token);
+    setShareLoading(false);
+    setCopied(false);
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const fetchAssignments = async () => {
     const res = await fetch('/api/assignments');
@@ -48,10 +82,16 @@ export function AcademicsContent() {
             <p className="text-sm text-gray-500">{assignments.length} assignments total</p>
           </div>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          New Assignment
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={openShareModal}>
+            <Share2 className="w-4 h-4 mr-1.5" />
+            Share with Counselor
+          </Button>
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            New Assignment
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -103,6 +143,36 @@ export function AcademicsContent() {
           onSave={() => { setShowForm(false); fetchAssignments(); }}
           onCancel={() => setShowForm(false)}
         />
+      </Modal>
+
+      <Modal open={showShareModal} onClose={() => setShowShareModal(false)} title="Share with Counselor">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Share this link with your counselor. They can view your visible assignments and extracurricular projects — nothing you&apos;ve marked as hidden will appear.
+          </p>
+          {shareLoading ? (
+            <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 truncate font-mono select-all">
+                {shareUrl}
+              </div>
+              <Button size="sm" variant="outline" onClick={copyLink} className="flex-shrink-0">
+                {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+              </Button>
+            </div>
+          )}
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-xs text-gray-400">Use the eye icon on assignments and tasks to control what&apos;s visible.</p>
+            <button
+              onClick={regenerateLink}
+              disabled={shareLoading}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" /> New link
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

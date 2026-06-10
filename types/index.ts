@@ -12,6 +12,7 @@ export interface ISubtask {
   notes?: string;
   googleTaskId?: string;
   completed: boolean;
+  counselorVisible?: boolean;
 }
 
 export interface ITask {
@@ -27,6 +28,7 @@ export interface ITask {
   notes?: string;
   subtasks: ISubtask[];
   googleTaskId?: string;
+  counselorVisible?: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
@@ -48,6 +50,7 @@ export interface IAssignment {
   links: ILink[];
   subtasks: ISubtask[];
   googleTaskId?: string;
+  counselorVisible?: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
@@ -64,6 +67,7 @@ export interface IProject {
   links: ILink[];
   tasks: ITask[];
   googleTaskId?: string;
+  counselorVisible?: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
@@ -114,6 +118,19 @@ export interface IReflection {
   mood?: number;
   journalEntry?: string;
   createdAt?: Date | string;
+}
+
+export type DailyFocusSourceType = 'assignment_subtask' | 'project_task' | 'body_goal_subtask';
+
+export interface IDailyFocusItem {
+  _id: string;
+  sourceType: DailyFocusSourceType;
+  sourceId: string;
+  parentId: string;
+  title: string;
+  parentTitle: string;
+  completed: boolean;
+  addedAt: string;
 }
 
 export interface IPomodoroSession {

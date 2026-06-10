@@ -107,48 +107,51 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
   }
 
-  if (authResult.user.accessToken) {
+  const accessToken = authResult.user.accessToken;
+  if (accessToken) {
     try {
       const assignmentDueDate = hasOwn(body, 'dueDate') ? body.dueDate : existing.dueDate;
-
-      if (assignmentDueDate || existing.googleTaskId) {
-        const result = await upsertTask(authResult.user.accessToken, existing.googleTaskId, {
-          title: `📚 ${body.title ?? existing.title} — ${body.course ?? existing.course}`,
-          notes: buildTaskNotes(body.notes ?? existing.notes, `assignment:${id}`),
-          dueDate: assignmentDueDate,
-          completed: nowCompleted,
-        });
-        body.googleTaskId = result.id;
-      }
-
       const subtasksToSync = body.subtasks ?? [];
 
+      const parentPromise = (assignmentDueDate || existing.googleTaskId)
+        ? upsertTask(accessToken, existing.googleTaskId, {
+            title: `📚 ${body.title ?? existing.title} — ${body.course ?? existing.course}`,
+            notes: buildTaskNotes(body.notes ?? existing.notes, `assignment:${id}`),
+            dueDate: assignmentDueDate,
+            completed: nowCompleted,
+          })
+        : Promise.resolve(null);
+
+      const subtaskPromises = body.subtasks
+        ? subtasksToSync.map(sub => {
+            const prev = existingSubs.find(s => toIdString(s._id) === toIdString(sub._id));
+            const resolvedTaskId = prev?.googleTaskId ?? null;
+            const beingCompleted = sub.completed === true && prev?.completed !== true;
+            const shouldSync = Boolean(sub.dueDate || resolvedTaskId || beingCompleted || justCompleted);
+
+            if (!shouldSync) return Promise.resolve(sub);
+
+            return upsertTask(accessToken, resolvedTaskId, {
+              title: `📚 ${sub.title}`,
+              notes: buildTaskNotes(sub.notes, `assignment:${id}:subtask:${toIdString(sub._id) ?? sub.title}`),
+              dueDate: sub.dueDate,
+              completed: (sub.completed ?? sub.status === 'completed') || justCompleted,
+            }).then(result => ({ ...sub, googleTaskId: result.id }));
+          })
+        : [];
+
+      const [parentResult, ...syncedSubtasks] = await Promise.all([parentPromise, ...subtaskPromises]);
+
+      if (parentResult) body.googleTaskId = parentResult.id;
       if (body.subtasks) {
-        for (let i = 0; i < subtasksToSync.length; i++) {
-          const sub = subtasksToSync[i];
-          const prev = existingSubs.find(s => toIdString(s._id) === toIdString(sub._id));
-          const resolvedTaskId = prev?.googleTaskId ?? null;
-          const beingCompleted = sub.completed === true && prev?.completed !== true;
-          const shouldSync = Boolean(sub.dueDate || resolvedTaskId || beingCompleted || justCompleted);
-
-          if (!shouldSync) continue;
-
-          const result = await upsertTask(authResult.user.accessToken, resolvedTaskId, {
-            title: `📚 ${sub.title}`,
-            notes: buildTaskNotes(sub.notes, `assignment:${id}:subtask:${toIdString(sub._id) ?? sub.title}`),
-            dueDate: sub.dueDate,
-            completed: (sub.completed ?? sub.status === 'completed') || justCompleted,
-          });
-          subtasksToSync[i] = { ...sub, googleTaskId: result.id };
-        }
-        body.subtasks = subtasksToSync;
+        body.subtasks = syncedSubtasks as AssignmentSubtaskBody[];
 
         const removedSubs = existingSubs.filter(
           s => !subtasksToSync.some(b => toIdString(b._id) === toIdString(s._id))
         );
-        for (const s of removedSubs) {
-          if (s.googleTaskId) await deleteTask(authResult.user.accessToken, s.googleTaskId);
-        }
+        await Promise.all(
+          removedSubs.filter(s => s.googleTaskId).map(s => deleteTask(accessToken, s.googleTaskId!))
+        );
       }
     } catch (error) {
       return googleSyncErrorResponse(error);

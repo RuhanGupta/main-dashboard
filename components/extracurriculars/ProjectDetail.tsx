@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Trash2, ExternalLink, Edit2, CheckCircle2, Circle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ExternalLink, Edit2, CheckCircle2, Circle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,12 +32,15 @@ export function ProjectDetail({ id }: { id: string }) {
   useEffect(() => { fetch_(); }, [id]);
 
   const updateProject = async (updates: Partial<IProject>) => {
-    await fetch(`/api/projects/${id}`, {
+    const body = { ...project, ...updates };
+    setProject(prev => prev ? { ...prev, ...updates } : prev);
+    const res = await fetch(`/api/projects/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...project, ...updates }),
+      body: JSON.stringify(body),
     });
-    fetch_();
+    const updated = await res.json();
+    setProject(updated);
   };
 
   const addTask = async () => {
@@ -56,6 +59,12 @@ export function ProjectDetail({ id }: { id: string }) {
 
   const deleteTask = async (idx: number) => {
     const tasks = (project?.tasks ?? []).filter((_, i) => i !== idx);
+    await updateProject({ tasks } as any);
+  };
+
+  const toggleTaskVisibility = async (idx: number) => {
+    const tasks = [...(project?.tasks ?? [])] as any[];
+    tasks[idx] = { ...tasks[idx], counselorVisible: tasks[idx].counselorVisible === false ? true : false };
     await updateProject({ tasks } as any);
   };
 
@@ -101,6 +110,17 @@ export function ProjectDetail({ id }: { id: string }) {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            title={project.counselorVisible === false ? 'Hidden from counselor' : 'Visible to counselor'}
+            onClick={() => updateProject({ counselorVisible: project.counselorVisible === false ? true : false })}
+            className={project.counselorVisible === false ? 'text-gray-400' : 'text-indigo-600'}
+          >
+            {project.counselorVisible === false
+              ? <><EyeOff className="w-3.5 h-3.5 mr-1" /> Hidden</>
+              : <><Eye className="w-3.5 h-3.5 mr-1" /> Visible</>}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setEditMode(true)}><Edit2 className="w-3.5 h-3.5 mr-1" />Edit</Button>
           <Button variant="destructive" size="sm" onClick={deleteProject}><Trash2 className="w-3.5 h-3.5 mr-1" />Delete</Button>
         </div>
@@ -168,19 +188,35 @@ export function ProjectDetail({ id }: { id: string }) {
                 {tasks.length === 0 ? (
                   <p className="text-sm text-gray-400 py-2">No tasks yet.</p>
                 ) : (
-                  tasks.map((t, idx) => (
-                    <div key={idx} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 group">
-                      <button onClick={() => toggleTask(idx)} className="text-gray-300 hover:text-green-500 transition-colors">
-                        {t.status === 'completed' ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4" />}
-                      </button>
-                      <span className={cn('text-sm flex-1', t.status === 'completed' && 'line-through text-gray-400')}>{t.title}</span>
-                      {t.dueDate && <span className="text-xs text-gray-400">{formatDateShort(t.dueDate)}</span>}
-                      {t.priority && <Badge className={cn('text-xs', priorityColor(t.priority))}>{t.priority}</Badge>}
-                      <button onClick={() => deleteTask(idx)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))
+                  tasks.map((t, idx) => {
+                    const projectHidden = project.counselorVisible === false;
+                    const taskHidden = t.counselorVisible === false;
+                    const effectivelyHidden = projectHidden || taskHidden;
+                    return (
+                      <div key={idx} className={cn('flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 group', effectivelyHidden && 'opacity-60')}>
+                        <button onClick={() => toggleTask(idx)} className="text-gray-300 hover:text-green-500 transition-colors">
+                          {t.status === 'completed' ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4" />}
+                        </button>
+                        <span className={cn('text-sm flex-1', t.status === 'completed' && 'line-through text-gray-400')}>{t.title}</span>
+                        {t.dueDate && <span className="text-xs text-gray-400">{formatDateShort(t.dueDate)}</span>}
+                        {t.priority && <Badge className={cn('text-xs', priorityColor(t.priority))}>{t.priority}</Badge>}
+                        <button
+                          onClick={() => !projectHidden && toggleTaskVisibility(idx)}
+                          disabled={projectHidden}
+                          title={projectHidden ? 'Hidden because project is hidden' : taskHidden ? 'Hidden from counselor' : 'Visible to counselor'}
+                          className={cn(
+                            'opacity-0 group-hover:opacity-100 transition-all',
+                            projectHidden ? 'cursor-not-allowed text-gray-300' : taskHidden ? 'text-gray-400 hover:text-indigo-500' : 'text-indigo-400 hover:text-indigo-600'
+                          )}
+                        >
+                          {effectivelyHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                        <button onClick={() => deleteTask(idx)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </CardContent>

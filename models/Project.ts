@@ -22,6 +22,7 @@ const TaskSchema = new Schema({
   notes: String,
   subtasks: [SubtaskSchema],
   googleTaskId: String,
+  counselorVisible: { type: Boolean, default: true },
 }, { timestamps: true });
 
 const ProjectSchema = new Schema({
@@ -35,6 +36,7 @@ const ProjectSchema = new Schema({
   links: [LinkSchema],
   tasks: [TaskSchema],
   googleTaskId: String,
+  counselorVisible: { type: Boolean, default: true },
 }, { timestamps: true });
 
 export const Project = models.Project ?? model('Project', ProjectSchema);

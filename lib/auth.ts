@@ -1,5 +1,7 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
+import { cookies } from 'next/headers';
+import { jwtVerify } from 'jose';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -65,16 +67,30 @@ export type CurrentUser = {
   accessToken?: string;
 };
 
+/** Verify the password-based cookie and return the hardcoded user email if valid. */
+async function getDashboardCookieUser(): Promise<CurrentUser | null> {
+  try {
+    const jar = await cookies();
+    const token = jar.get('dashboard_token')?.value;
+    if (!token) return null;
+    const secret = new TextEncoder().encode(process.env.DASHBOARD_SECRET!);
+    await jwtVerify(token, secret);
+    return { id: process.env.DASHBOARD_USER_EMAIL ?? 'ruhangupta01@gmail.com' };
+  } catch {
+    return null;
+  }
+}
+
 export async function getCurrentUser(): Promise<CurrentUser | null> {
+  // Password cookie takes priority (works on any device, no OAuth needed)
+  const cookieUser = await getDashboardCookieUser();
+  if (cookieUser) return cookieUser;
+
+  // Fall back to NextAuth / Google OAuth session (enables Google Tasks sync)
   const session = await auth();
-  // Email is the stable identifier — always prefer it over session.user.id
   const id = session?.user?.email ?? session?.user?.id ?? undefined;
   const accessToken = session?.accessToken;
 
   if (!id) return null;
-
-  return {
-    id,
-    accessToken,
-  };
+  return { id, accessToken };
 }

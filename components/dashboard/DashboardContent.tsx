@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { IAssignment, IProject } from '@/types';
 import { WeeklyCalendar } from './WeeklyCalendar';
 import { TaskItem } from './TaskItem';
+import { DailyFocusPanel } from './DailyFocusPanel';
 import { Badge } from '@/components/ui/badge';
 import { priorityColor, statusColor, formatDateShort } from '@/lib/utils';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -62,6 +63,9 @@ export function DashboardContent() {
           {format(new Date(windowStart), 'MMM d')} – {format(new Date(windowEnd), 'MMM d')}
         </p>
       </div>
+
+      {/* Daily Focus */}
+      <DailyFocusPanel />
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">

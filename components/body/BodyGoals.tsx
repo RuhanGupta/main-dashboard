@@ -35,40 +35,47 @@ export function BodyGoals() {
 
   const createGoal = async () => {
     if (!form.title.trim()) return;
-    await fetch('/api/body-goals', {
+    const res = await fetch('/api/body-goals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, subtasks: [] }),
     });
+    const created = await res.json();
+    setGoals(prev => [...prev, created]);
     setForm({ title: '', notes: '', status: 'not_started', dueDate: '' });
     setShowForm(false);
-    fetchGoals();
   };
 
   const addSubtask = async (goal: BodyGoal, title: string) => {
     const subtasks = [...goal.subtasks, { title, completed: false }];
-    await fetch(`/api/body-goals/${goal._id}`, {
+    const body = { ...goal, subtasks };
+    setGoals(prev => prev.map(g => g._id === goal._id ? { ...g, subtasks } : g));
+    const res = await fetch(`/api/body-goals/${goal._id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...goal, subtasks }),
+      body: JSON.stringify(body),
     });
-    fetchGoals();
+    const updated = await res.json();
+    setGoals(prev => prev.map(g => g._id === goal._id ? updated : g));
   };
 
   const toggleSubtask = async (goal: BodyGoal, idx: number) => {
     const subtasks = [...goal.subtasks];
     subtasks[idx] = { ...subtasks[idx], completed: !subtasks[idx].completed };
-    await fetch(`/api/body-goals/${goal._id}`, {
+    const body = { ...goal, subtasks };
+    setGoals(prev => prev.map(g => g._id === goal._id ? { ...g, subtasks } : g));
+    const res = await fetch(`/api/body-goals/${goal._id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...goal, subtasks }),
+      body: JSON.stringify(body),
     });
-    fetchGoals();
+    const updated = await res.json();
+    setGoals(prev => prev.map(g => g._id === goal._id ? updated : g));
   };
 
   const deleteGoal = async (id: string) => {
+    setGoals(prev => prev.filter(g => g._id !== id));
     await fetch(`/api/body-goals/${id}`, { method: 'DELETE' });
-    fetchGoals();
   };
 
   if (loading) return <div className="animate-pulse space-y-3">{[1,2].map(i => <div key={i} className="h-32 bg-gray-200 rounded-xl" />)}</div>;
