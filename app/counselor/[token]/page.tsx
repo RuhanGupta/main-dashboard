@@ -70,8 +70,8 @@ async function getData(token: string): Promise<{ assignments: Assignment[]; proj
   if (!share) return null;
 
   const [rawAssignments, rawProjects] = await Promise.all([
-    Assignment.find({ userId: share.userId, counselorVisible: true }).sort({ dueDate: 1 }).lean(),
-    Project.find({ userId: share.userId, counselorVisible: true }).sort({ dueDate: 1 }).lean(),
+    Assignment.find({ userId: share.userId, counselorVisible: { $ne: false } }).sort({ dueDate: 1 }).lean(),
+    Project.find({ userId: share.userId, counselorVisible: { $ne: false } }).sort({ dueDate: 1 }).lean(),
   ]);
 
   const assignments = (rawAssignments as any[]).map(a => ({
