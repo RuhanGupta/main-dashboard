@@ -17,28 +17,28 @@ export function BodyContent() {
   ];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-8 max-w-6xl mx-auto stagger">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-          <Dumbbell className="w-5 h-5 text-green-600" />
+      <div className="flex items-center gap-3.5 mb-7">
+        <div className="w-11 h-11 bg-body-soft border border-body-line rounded-2xl flex items-center justify-center shadow-card">
+          <Dumbbell className="w-5 h-5 text-body-deep" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Body</h1>
-          <p className="text-sm text-gray-500">Workouts, habits & fitness goals</p>
+          <h1 className="font-serif text-[1.75rem] font-semibold text-foreground tracking-tight">Body</h1>
+          <p className="text-sm text-muted-foreground">Workouts, habits & fitness goals</p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
+      {/* Tabs — segmented pill control */}
+      <div className="inline-flex items-center gap-1 bg-muted/80 border border-border rounded-full p-1 mb-7">
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
               tab === key
-                ? 'border-green-600 text-green-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'bg-card text-body-deep shadow-card'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Icon className="w-4 h-4" />
@@ -47,9 +47,11 @@ export function BodyContent() {
         ))}
       </div>
 
-      {tab === 'workouts' && <WorkoutPlanner />}
-      {tab === 'habits' && <HabitTracker />}
-      {tab === 'goals' && <BodyGoals />}
+      <div key={tab} className="animate-fade-up">
+        {tab === 'workouts' && <WorkoutPlanner />}
+        {tab === 'habits' && <HabitTracker />}
+        {tab === 'goals' && <BodyGoals />}
+      </div>
     </div>
   );
 }

@@ -102,17 +102,17 @@ export function WorkoutPlanner() {
     <div>
       {/* Week navigation */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-gray-600">
+        <p className="text-sm font-medium text-muted-foreground">
           {format(days[0], 'MMM d')} – {format(days[6], 'MMM d, yyyy')}
         </p>
         <div className="flex items-center gap-2">
-          <button onClick={() => setWeekOffset(o => o - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <button onClick={() => setWeekOffset(o => o - 1)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <button onClick={() => setWeekOffset(0)} className="px-3 py-1 text-xs font-medium rounded-lg bg-green-50 text-green-600 hover:bg-green-100">
+          <button onClick={() => setWeekOffset(0)} className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-body-soft text-body-deep hover:bg-body-line/60 transition-colors">
             Today
           </button>
-          <button onClick={() => setWeekOffset(o => o + 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <button onClick={() => setWeekOffset(o => o + 1)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -124,11 +124,11 @@ export function WorkoutPlanner() {
           const isToday = isSameDay(day, today);
           const dayWorkouts = getWorkoutsForDay(day);
           return (
-            <div key={i} className={cn('rounded-xl border overflow-hidden', isToday ? 'border-green-300 shadow-sm' : 'border-gray-200')}>
+            <div key={i} className={cn('rounded-2xl border overflow-hidden bg-card shadow-card transition-colors', isToday ? 'border-body ring-1 ring-body/30' : 'border-border')}>
               {/* Day header */}
-              <div className={cn('px-2 py-2 text-center', isToday ? 'bg-green-50' : 'bg-gray-50')}>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">{format(day, 'EEE')}</p>
-                <p className={cn('text-lg font-bold mt-0.5', isToday ? 'text-green-600' : 'text-gray-800')}>
+              <div className={cn('px-2 py-2.5 text-center', isToday ? 'bg-body-soft' : 'bg-muted/50')}>
+                <p className={cn('text-[10px] uppercase tracking-[0.15em]', isToday ? 'text-body-deep font-semibold' : 'text-muted-foreground')}>{format(day, 'EEE')}</p>
+                <p className={cn('text-lg font-serif font-semibold mt-0.5', isToday ? 'text-body-deep' : 'text-foreground')}>
                   {format(day, 'd')}
                 </p>
               </div>
@@ -138,8 +138,8 @@ export function WorkoutPlanner() {
                   <div
                     key={w._id}
                     className={cn(
-                      'px-2 py-1.5 rounded-lg text-xs cursor-pointer group transition-all',
-                      w.completed ? 'bg-green-100 text-green-700' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                      'px-2 py-1.5 rounded-lg text-xs cursor-pointer group transition-all duration-200 hover:scale-[1.03]',
+                      w.completed ? 'bg-body-soft text-body-deep border border-body-line' : 'bg-secondary/50 text-primary-deep border border-secondary hover:bg-secondary/80'
                     )}
                     onClick={() => setSelectedWorkout(w)}
                   >
@@ -147,7 +147,7 @@ export function WorkoutPlanner() {
                       <span className="font-medium truncate flex-1">{w.title}</span>
                       <button
                         onClick={e => { e.stopPropagation(); deleteWorkout(w._id!); }}
-                        className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 ml-1 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 text-danger/70 hover:text-danger ml-1 transition-opacity"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -159,7 +159,7 @@ export function WorkoutPlanner() {
                 ))}
                 <button
                   onClick={() => { setSelectedDay(day); setShowWorkoutForm(true); }}
-                  className="w-full text-center text-xs text-gray-300 hover:text-gray-500 py-1 transition-colors"
+                  className="w-full text-center text-xs text-muted-foreground/50 hover:text-body-deep py-1 transition-colors"
                 >
                   + Add
                 </button>
@@ -244,12 +244,12 @@ function WorkoutDetailModal({ workout, onClose, onToggle, onAddExercise, onDelet
     <Modal open onClose={onClose} title={workout.title} className="max-w-lg">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">{format(new Date(workout.date), 'EEEE, MMMM d')}</p>
+          <p className="text-sm text-muted-foreground">{format(new Date(workout.date), 'EEEE, MMMM d')}</p>
           <button
             onClick={() => onToggle(workout)}
             className={cn(
-              'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors',
-              workout.completed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              'flex items-center gap-1.5 text-sm font-medium px-3.5 py-1.5 rounded-xl transition-all duration-200 active:scale-95',
+              workout.completed ? 'bg-body-soft text-body-deep border border-body-line' : 'bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground border border-border'
             )}
           >
             <CheckCircle2 className="w-4 h-4" />
@@ -259,26 +259,26 @@ function WorkoutDetailModal({ workout, onClose, onToggle, onAddExercise, onDelet
 
         <div className="space-y-2">
           {workout.exercises.length === 0 ? (
-            <p className="text-sm text-gray-400 py-3 text-center">No exercises yet. Add some below!</p>
+            <p className="text-sm text-muted-foreground py-3 text-center">No exercises yet. Add some below!</p>
           ) : (
             workout.exercises.map((ex, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-2 p-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-gray-100 cursor-pointer group transition-colors"
+                className="flex items-center gap-2.5 p-3 rounded-2xl border border-border bg-muted/40 hover:bg-muted/80 cursor-pointer group transition-colors"
                 onClick={() => onOpenExercise(idx)}
               >
-                <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Dumbbell className="w-4 h-4 text-indigo-600" />
+                <div className="w-9 h-9 bg-body-soft border border-body-line rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Dumbbell className="w-4 h-4 text-body-deep" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800">{ex.name}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-sm font-medium text-foreground">{ex.name}</p>
+                  <p className="text-xs text-muted-foreground">
                     {[ex.sets && `${ex.sets} sets`, ex.reps && `${ex.reps} reps`, ex.weight && ex.weight].filter(Boolean).join(' · ')}
                   </p>
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); onDeleteExercise(workout, idx); }}
-                  className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 p-1 transition-all"
+                  className="opacity-0 group-hover:opacity-100 text-danger/70 hover:text-danger p-1 transition-all"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -288,7 +288,7 @@ function WorkoutDetailModal({ workout, onClose, onToggle, onAddExercise, onDelet
         </div>
 
         {showForm ? (
-          <div className="bg-indigo-50 rounded-xl p-3 space-y-2">
+          <div className="bg-muted/60 border border-border rounded-2xl p-3.5 space-y-2 animate-scale-in">
             <Input placeholder="Exercise name *" value={newExercise.name} onChange={e => setNewExercise(ex => ({ ...ex, name: e.target.value }))} />
             <div className="grid grid-cols-3 gap-2">
               <Input placeholder="Sets" type="number" value={newExercise.sets} onChange={e => setNewExercise(ex => ({ ...ex, sets: e.target.value }))} />
@@ -355,42 +355,42 @@ function ExerciseDetailModal({ workout, exerciseIdx, onClose, onUpdate }: {
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Name</label>
             <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Sets</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Sets</label>
             <Input type="number" value={form.sets} onChange={e => setForm(f => ({ ...f, sets: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Reps</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Reps</label>
             <Input value={form.reps} onChange={e => setForm(f => ({ ...f, reps: e.target.value }))} placeholder="e.g. 8-12" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Weight</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Weight</label>
             <Input value={form.weight} onChange={e => setForm(f => ({ ...f, weight: e.target.value }))} placeholder="e.g. 135 lbs" />
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Form Tips</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Form Tips</label>
           <Textarea value={form.formTips} onChange={e => setForm(f => ({ ...f, formTips: e.target.value }))} rows={2} placeholder="Keep back straight, squeeze at top..." />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Notes</label>
           <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} placeholder="Personal reminders..." />
         </div>
 
         {/* Weight history */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-2">Weight History</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-2">Weight History</label>
           <div className="space-y-1 max-h-32 overflow-y-auto mb-2">
             {(exercise.previousWeights ?? []).length === 0 ? (
-              <p className="text-xs text-gray-400">No history yet.</p>
+              <p className="text-xs text-muted-foreground">No history yet.</p>
             ) : (
               [...(exercise.previousWeights ?? [])].reverse().map((entry, i) => (
-                <div key={i} className="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-1.5">
-                  <span className="text-gray-500">{entry.date}</span>
-                  <span className="font-medium text-gray-700">{entry.weight} × {entry.reps || '?'}</span>
+                <div key={i} className="flex items-center justify-between text-xs bg-muted/60 border border-border/60 rounded-lg px-3 py-1.5">
+                  <span className="text-muted-foreground">{entry.date}</span>
+                  <span className="font-medium text-foreground">{entry.weight} × {entry.reps || '?'}</span>
                 </div>
               ))
             )}

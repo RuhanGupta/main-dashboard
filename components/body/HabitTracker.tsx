@@ -90,14 +90,14 @@ export function HabitTracker() {
     return Math.round((completed / relevant.length) * 100);
   };
 
-  if (loading) return <div className="animate-pulse space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-gray-200 rounded-xl" />)}</div>;
+  if (loading) return <div className="animate-pulse space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-muted rounded-2xl" />)}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-semibold text-gray-900">Habit Tracker</h2>
-          <p className="text-sm text-gray-500">21-day heatmap · {habits.length} habits</p>
+          <h2 className="font-serif font-semibold text-foreground text-lg">Habit Tracker</h2>
+          <p className="text-sm text-muted-foreground">21-day heatmap · {habits.length} habits</p>
         </div>
         <Button size="sm" onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-1" />Add Habit
@@ -112,7 +112,7 @@ export function HabitTracker() {
             <div className="flex items-center gap-2 mb-1 pl-48">
               {last21Days.map((d, i) => (
                 <div key={d} className="w-7 text-center">
-                  <span className="text-xs text-gray-400">{i === 0 || new Date(d).getDate() === 1 ? format(new Date(d), 'MMM d') : format(new Date(d), 'd')}</span>
+                  <span className="text-xs text-muted-foreground">{i === 0 || new Date(d).getDate() === 1 ? format(new Date(d), 'MMM d') : format(new Date(d), 'd')}</span>
                 </div>
               ))}
             </div>
@@ -127,10 +127,10 @@ export function HabitTracker() {
                     <div className="w-44 flex-shrink-0 flex items-center gap-2">
                       <span className="text-lg">{habit.icon}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{habit.name}</p>
+                        <p className="text-sm font-medium text-foreground truncate">{habit.name}</p>
                         <div className="flex items-center gap-1">
-                          <Flame className="w-3 h-3 text-orange-400" />
-                          <span className="text-xs text-gray-400">{habit.streak} day streak</span>
+                          <Flame className="w-3 h-3 text-warning" />
+                          <span className="text-xs text-muted-foreground">{habit.streak} day streak</span>
                         </div>
                       </div>
                     </div>
@@ -150,9 +150,9 @@ export function HabitTracker() {
                             key={d}
                             onClick={() => toggleHabit(habit, d)}
                             className={cn(
-                              'w-7 h-7 rounded-md transition-all hover:scale-110',
-                              done ? 'opacity-100 shadow-sm' : 'bg-gray-100 hover:bg-gray-200',
-                              isToday && !done && 'ring-2 ring-offset-1',
+                              'w-7 h-7 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95',
+                              done ? 'opacity-100 shadow-card' : 'bg-muted hover:bg-border',
+                              isToday && !done && 'ring-2 ring-ring/50 ring-offset-1 ring-offset-background',
                             )}
                             style={{
                               backgroundColor: done ? habit.color : undefined,
@@ -168,7 +168,7 @@ export function HabitTracker() {
                     {/* Delete */}
                     <button
                       onClick={() => deleteHabit(habit._id!)}
-                      className="text-gray-300 hover:text-red-400 transition-colors ml-1"
+                      className="text-border-strong hover:text-danger transition-colors ml-1"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -182,11 +182,11 @@ export function HabitTracker() {
 
       {/* Today's habits at-a-glance */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Today's Habits</h3>
-        <div className="grid grid-cols-2 gap-2">
+        <h3 className="text-sm font-serif font-semibold text-foreground mb-3">Today's Habits</h3>
+        <div className="grid grid-cols-2 gap-2.5">
           {habits.length === 0 ? (
-            <div className="col-span-2 text-center py-12 text-gray-400">
-              <Flame className="w-10 h-10 mx-auto mb-2 text-gray-200" />
+            <div className="col-span-2 text-center py-12 text-muted-foreground">
+              <Flame className="w-10 h-10 mx-auto mb-2 text-border" />
               <p className="font-medium">No habits yet</p>
               <p className="text-sm">Add your first habit above!</p>
             </div>
@@ -198,21 +198,21 @@ export function HabitTracker() {
                   key={habit._id}
                   onClick={() => toggleHabit(habit, today)}
                   className={cn(
-                    'flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all',
-                    done ? 'border-transparent text-white shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'
+                    'flex items-center gap-3 p-3.5 rounded-2xl border-2 text-left transition-all duration-200 active:scale-[0.98]',
+                    done ? 'border-transparent text-white shadow-lift' : 'border-border bg-card hover:border-border-strong hover:shadow-card'
                   )}
                   style={{ backgroundColor: done ? habit.color : undefined }}
                 >
                   <span className="text-2xl">{habit.icon}</span>
                   <div>
-                    <p className={cn('text-sm font-medium', done ? 'text-white' : 'text-gray-800')}>{habit.name}</p>
+                    <p className={cn('text-sm font-medium', done ? 'text-white' : 'text-foreground')}>{habit.name}</p>
                     <div className="flex items-center gap-1">
-                      <Flame className={cn('w-3 h-3', done ? 'text-white/70' : 'text-orange-400')} />
-                      <span className={cn('text-xs', done ? 'text-white/70' : 'text-gray-400')}>{habit.streak}</span>
+                      <Flame className={cn('w-3 h-3', done ? 'text-white/70' : 'text-warning')} />
+                      <span className={cn('text-xs', done ? 'text-white/70' : 'text-muted-foreground')}>{habit.streak}</span>
                     </div>
                   </div>
                   <div className="ml-auto">
-                    {done ? <Check className="w-5 h-5 text-white" /> : <div className="w-5 h-5 rounded-full border-2 border-gray-200" />}
+                    {done ? <Check className="w-5 h-5 text-white animate-pop" /> : <div className="w-5 h-5 rounded-full border-2 border-border" />}
                   </div>
                 </button>
               );
@@ -225,24 +225,24 @@ export function HabitTracker() {
       <Modal open={showForm} onClose={() => setShowForm(false)} title="New Habit">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Habit Name</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Habit Name</label>
             <Input value={newHabit.name} onChange={e => setNewHabit(h => ({ ...h, name: e.target.value }))} placeholder="e.g. Walk 10k steps" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Frequency</label>
             <Select value={newHabit.frequency} onChange={e => setNewHabit(h => ({ ...h, frequency: e.target.value as any }))}>
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
             </Select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Icon</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Icon</label>
             <div className="flex flex-wrap gap-2">
               {EMOJI_OPTIONS.map(emoji => (
                 <button
                   key={emoji}
                   onClick={() => setNewHabit(h => ({ ...h, icon: emoji }))}
-                  className={cn('w-10 h-10 text-xl rounded-lg border-2 transition-all', newHabit.icon === emoji ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300')}
+                  className={cn('w-10 h-10 text-xl rounded-xl border-2 transition-all duration-200 active:scale-90', newHabit.icon === emoji ? 'border-primary bg-secondary/50 scale-105' : 'border-border hover:border-border-strong')}
                 >
                   {emoji}
                 </button>
@@ -250,13 +250,13 @@ export function HabitTracker() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Color</label>
             <div className="flex flex-wrap gap-2">
               {HABIT_COLORS.map(color => (
                 <button
                   key={color}
                   onClick={() => setNewHabit(h => ({ ...h, color }))}
-                  className={cn('w-8 h-8 rounded-full border-4 transition-all', newHabit.color === color ? 'border-gray-800 scale-110' : 'border-transparent')}
+                  className={cn('w-8 h-8 rounded-full border-4 transition-all duration-200', newHabit.color === color ? 'border-foreground scale-110 shadow-card' : 'border-transparent hover:scale-105')}
                   style={{ backgroundColor: color }}
                 />
               ))}

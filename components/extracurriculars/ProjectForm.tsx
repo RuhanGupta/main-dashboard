@@ -40,20 +40,20 @@ export function ProjectForm({ project, onSave, onCancel }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+        <label className="block text-sm font-medium text-foreground mb-1.5">Title *</label>
         <Input required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Project title" />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <label className="block text-sm font-medium text-foreground mb-1.5">Description</label>
         <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What is this project about?" rows={2} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Due Date</label>
           <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Priority</label>
           <Select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value as any }))}>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -63,7 +63,7 @@ export function ProjectForm({ project, onSave, onCancel }: Props) {
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+        <label className="block text-sm font-medium text-foreground mb-1.5">Status</label>
         <Select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))}>
           <option value="not_started">Not Started</option>
           <option value="in_progress">In Progress</option>
@@ -72,7 +72,7 @@ export function ProjectForm({ project, onSave, onCancel }: Props) {
         </Select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+        <label className="block text-sm font-medium text-foreground mb-1.5">Notes</label>
         <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Brainstorming, next steps..." rows={3} />
       </div>
       <div className="flex gap-2 pt-2">

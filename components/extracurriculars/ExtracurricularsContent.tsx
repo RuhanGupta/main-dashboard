@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Star, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { IProject } from '@/types';
 import { ProjectCard } from './ProjectCard';
 import { ProjectForm } from './ProjectForm';
@@ -38,16 +38,16 @@ export function ExtracurricularsContent() {
   );
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-8 max-w-5xl mx-auto stagger">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-            <Star className="w-5 h-5 text-purple-600" />
+      <div className="flex items-center justify-between mb-7">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 bg-extracurricular-soft border border-extracurricular-line rounded-2xl flex items-center justify-center shadow-card">
+            <Star className="w-5 h-5 text-extracurricular-deep" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Extracurriculars</h1>
-            <p className="text-sm text-gray-500">{projects.length} projects</p>
+            <h1 className="font-serif text-[1.75rem] font-semibold text-foreground tracking-tight">Extracurriculars</h1>
+            <p className="text-sm text-muted-foreground">{projects.length} projects</p>
           </div>
         </div>
         <Button onClick={() => setShowForm(true)}>
@@ -56,12 +56,12 @@ export function ExtracurricularsContent() {
         </Button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      {/* Tabs — segmented pill control */}
+      <div className="inline-flex items-center gap-1 bg-muted/80 border border-border rounded-full p-1 mb-7">
         <button
           onClick={() => setActiveTab('weekly')}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 ${
-            activeTab === 'weekly' ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
+            activeTab === 'weekly' ? 'bg-card text-extracurricular-deep shadow-card' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <Calendar className="w-4 h-4" />
@@ -69,8 +69,8 @@ export function ExtracurricularsContent() {
         </button>
         <button
           onClick={() => setActiveTab('all')}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-            activeTab === 'all' ? 'bg-purple-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+            activeTab === 'all' ? 'bg-card text-extracurricular-deep shadow-card' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           All Projects
@@ -79,17 +79,17 @@ export function ExtracurricularsContent() {
 
       {loading ? (
         <div className="space-y-4 animate-pulse">
-          {[1, 2, 3].map(i => <div key={i} className="h-28 bg-gray-200 rounded-xl" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-28 bg-muted rounded-2xl" />)}
         </div>
       ) : activeTab === 'weekly' ? (
         <WeeklyTaskList tasks={weeklyTasks} onUpdate={fetchProjects} />
       ) : (
         <div className="space-y-4">
           {projects.length === 0 ? (
-            <Card className="p-12 text-center">
-              <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No projects yet</p>
-              <p className="text-sm text-gray-400 mt-1">Click "New Project" to add one</p>
+            <Card className="p-14 text-center">
+              <Star className="w-12 h-12 text-border-strong mx-auto mb-3" />
+              <p className="text-foreground font-serif font-medium text-lg">No projects yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Click "New Project" to add one</p>
             </Card>
           ) : (
             projects.map(p => (

@@ -13,13 +13,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed',
+          'inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
           {
-            'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm': variant === 'default',
-            'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50': variant === 'outline',
-            'text-gray-600 hover:bg-gray-100': variant === 'ghost',
-            'bg-red-600 text-white hover:bg-red-700': variant === 'destructive',
-            'bg-gray-100 text-gray-700 hover:bg-gray-200': variant === 'secondary',
+            'bg-primary text-primary-foreground hover:bg-primary-deep shadow-card hover:shadow-glow': variant === 'default',
+            'border border-border-strong bg-card text-foreground hover:bg-muted hover:border-primary/40': variant === 'outline',
+            'text-muted-foreground hover:bg-muted hover:text-foreground': variant === 'ghost',
+            'bg-destructive text-destructive-foreground hover:opacity-90 shadow-card': variant === 'destructive',
+            'bg-secondary text-secondary-foreground hover:bg-secondary/70': variant === 'secondary',
           },
           {
             'px-2.5 py-1.5 text-xs': size === 'sm',

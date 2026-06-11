@@ -4,12 +4,11 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, ExternalLink, Edit2, CheckCircle2, Circle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
-import { IAssignment, ISubtask, ILink } from '@/types';
+import { IAssignment } from '@/types';
 import { cn, priorityColor, statusColor, formatDate } from '@/lib/utils';
 import { AssignmentForm } from './AssignmentForm';
 
@@ -87,25 +86,25 @@ export function AssignmentDetail({ id }: { id: string }) {
     router.push('/academics');
   };
 
-  if (loading) return <div className="p-6 animate-pulse"><div className="h-8 bg-gray-200 rounded w-64" /></div>;
-  if (!assignment) return <div className="p-6 text-gray-500">Assignment not found.</div>;
+  if (loading) return <div className="p-8 animate-pulse"><div className="h-8 bg-muted rounded-xl w-64" /></div>;
+  if (!assignment) return <div className="p-8 text-muted-foreground">Assignment not found.</div>;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-8 max-w-4xl mx-auto stagger">
       {/* Back */}
-      <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to Academics
+      <button onClick={() => router.back()} className="group flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
+        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" /> Back to Academics
       </button>
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-7">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{assignment.title}</h1>
-          <div className="flex items-center gap-2 mt-2">
-            <Badge className="text-sm font-medium text-blue-600 bg-blue-50 border-blue-200">{assignment.course}</Badge>
+          <h1 className="font-serif text-[1.75rem] font-semibold text-foreground tracking-tight">{assignment.title}</h1>
+          <div className="flex items-center gap-2 mt-2.5">
+            <Badge className="text-sm font-medium text-academic-deep bg-academic-soft border-academic-line">{assignment.course}</Badge>
             {assignment.priority && <Badge className={cn(priorityColor(assignment.priority))}>{assignment.priority}</Badge>}
             {assignment.status && <Badge className={cn(statusColor(assignment.status))}>{assignment.status.replace('_', ' ')}</Badge>}
-            {assignment.dueDate && <span className="text-sm text-gray-400">Due {formatDate(assignment.dueDate)}</span>}
+            {assignment.dueDate && <span className="text-sm text-muted-foreground">Due {formatDate(assignment.dueDate)}</span>}
           </div>
         </div>
         <div className="flex gap-2">
@@ -114,7 +113,7 @@ export function AssignmentDetail({ id }: { id: string }) {
             size="sm"
             title={assignment.counselorVisible === false ? 'Hidden from counselor' : 'Visible to counselor'}
             onClick={() => updateAssignment({ counselorVisible: assignment.counselorVisible === false ? true : false })}
-            className={assignment.counselorVisible === false ? 'text-gray-400' : 'text-indigo-600'}
+            className={assignment.counselorVisible === false ? 'text-muted-foreground' : 'text-primary-deep'}
           >
             {assignment.counselorVisible === false
               ? <><EyeOff className="w-3.5 h-3.5 mr-1" /> Hidden</>
@@ -133,12 +132,12 @@ export function AssignmentDetail({ id }: { id: string }) {
         <div className="col-span-2 space-y-6">
           {/* Notes */}
           <Card>
-            <CardHeader><h3 className="font-semibold text-gray-900">Notes</h3></CardHeader>
+            <CardHeader><h3 className="font-serif font-semibold text-foreground">Notes</h3></CardHeader>
             <CardContent>
               {assignment.notes ? (
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{assignment.notes}</p>
+                <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{assignment.notes}</p>
               ) : (
-                <p className="text-sm text-gray-400 italic">No notes yet. Click Edit to add some.</p>
+                <p className="text-sm text-muted-foreground italic">No notes yet. Click Edit to add some.</p>
               )}
             </CardContent>
           </Card>
@@ -147,7 +146,7 @@ export function AssignmentDetail({ id }: { id: string }) {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">Subtasks</h3>
+                <h3 className="font-serif font-semibold text-foreground">Subtasks</h3>
                 <Button size="sm" variant="outline" onClick={() => setShowSubtaskForm(s => !s)}>
                   <Plus className="w-3.5 h-3.5 mr-1" /> Add
                 </Button>
@@ -155,7 +154,7 @@ export function AssignmentDetail({ id }: { id: string }) {
             </CardHeader>
             <CardContent>
               {showSubtaskForm && (
-                <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
+                <div className="bg-muted/60 border border-border rounded-2xl p-3.5 mb-3 space-y-2 animate-scale-in">
                   <Input
                     placeholder="Subtask title"
                     value={newSubtask.title}
@@ -180,33 +179,33 @@ export function AssignmentDetail({ id }: { id: string }) {
                   </div>
                 </div>
               )}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {(assignment.subtasks ?? []).length === 0 ? (
-                  <p className="text-sm text-gray-400 py-2">No subtasks yet.</p>
+                  <p className="text-sm text-muted-foreground py-2">No subtasks yet.</p>
                 ) : (
                   assignment.subtasks.map((s, idx) => {
                     const assignmentHidden = assignment.counselorVisible === false;
                     const subtaskHidden = s.counselorVisible === false;
                     const effectivelyHidden = assignmentHidden || subtaskHidden;
                     return (
-                      <div key={idx} className={cn('flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 group', effectivelyHidden && 'opacity-60')}>
-                        <button onClick={() => toggleSubtask(idx)} className="text-gray-300 hover:text-green-500 transition-colors">
-                          {s.completed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4" />}
+                      <div key={idx} className={cn('flex items-center gap-2 p-2 rounded-xl hover:bg-muted/70 group transition-colors', effectivelyHidden && 'opacity-60')}>
+                        <button onClick={() => toggleSubtask(idx)} className="text-border-strong hover:text-success-deep hover:scale-110 transition-all">
+                          {s.completed ? <CheckCircle2 className="w-4 h-4 text-success-deep" /> : <Circle className="w-4 h-4" />}
                         </button>
-                        <span className={cn('text-sm flex-1', s.completed && 'line-through text-gray-400')}>{s.title}</span>
-                        {s.dueDate && <span className="text-xs text-gray-400">{formatDate(s.dueDate)}</span>}
+                        <span className={cn('text-sm flex-1', s.completed && 'line-through text-muted-foreground')}>{s.title}</span>
+                        {s.dueDate && <span className="text-xs text-muted-foreground">{formatDate(s.dueDate)}</span>}
                         <button
                           onClick={() => !assignmentHidden && toggleSubtaskVisibility(idx)}
                           disabled={assignmentHidden}
                           title={assignmentHidden ? 'Hidden because assignment is hidden' : subtaskHidden ? 'Hidden from counselor' : 'Visible to counselor'}
                           className={cn(
                             'opacity-0 group-hover:opacity-100 transition-all',
-                            assignmentHidden ? 'cursor-not-allowed text-gray-300' : subtaskHidden ? 'text-gray-400 hover:text-indigo-500' : 'text-indigo-400 hover:text-indigo-600'
+                            assignmentHidden ? 'cursor-not-allowed text-border-strong' : subtaskHidden ? 'text-muted-foreground hover:text-primary' : 'text-primary/70 hover:text-primary-deep'
                           )}
                         >
                           {effectivelyHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
-                        <button onClick={() => deleteSubtask(idx)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all">
+                        <button onClick={() => deleteSubtask(idx)} className="opacity-0 group-hover:opacity-100 text-danger/70 hover:text-danger transition-all">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -224,7 +223,7 @@ export function AssignmentDetail({ id }: { id: string }) {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900 text-sm">Links</h3>
+                <h3 className="font-serif font-semibold text-foreground text-sm">Links</h3>
                 <Button size="sm" variant="outline" onClick={() => setShowLinkForm(s => !s)}>
                   <Plus className="w-3.5 h-3.5" />
                 </Button>
@@ -232,7 +231,7 @@ export function AssignmentDetail({ id }: { id: string }) {
             </CardHeader>
             <CardContent>
               {showLinkForm && (
-                <div className="space-y-2 mb-3">
+                <div className="space-y-2 mb-3 animate-scale-in">
                   <Input placeholder="Link title" value={newLink.title} onChange={e => setNewLink(l => ({ ...l, title: e.target.value }))} />
                   <Input placeholder="URL" type="url" value={newLink.url} onChange={e => setNewLink(l => ({ ...l, url: e.target.value }))} />
                   <div className="flex gap-1">
@@ -243,7 +242,7 @@ export function AssignmentDetail({ id }: { id: string }) {
               )}
               <div className="space-y-1.5">
                 {(assignment.links ?? []).length === 0 ? (
-                  <p className="text-xs text-gray-400">No links yet.</p>
+                  <p className="text-xs text-muted-foreground">No links yet.</p>
                 ) : (
                   assignment.links.map((link, idx) => (
                     <div key={idx} className="flex items-center gap-2 group">
@@ -251,12 +250,12 @@ export function AssignmentDetail({ id }: { id: string }) {
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-sm text-indigo-600 hover:underline flex-1 truncate"
+                        className="flex items-center gap-1.5 text-sm text-primary-deep hover:underline flex-1 truncate"
                       >
                         <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
                         {link.title}
                       </a>
-                      <button onClick={() => deleteLink(idx)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600">
+                      <button onClick={() => deleteLink(idx)} className="opacity-0 group-hover:opacity-100 text-danger/70 hover:text-danger transition-all">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>

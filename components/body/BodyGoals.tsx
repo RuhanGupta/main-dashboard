@@ -78,22 +78,22 @@ export function BodyGoals() {
     await fetch(`/api/body-goals/${id}`, { method: 'DELETE' });
   };
 
-  if (loading) return <div className="animate-pulse space-y-3">{[1,2].map(i => <div key={i} className="h-32 bg-gray-200 rounded-xl" />)}</div>;
+  if (loading) return <div className="animate-pulse space-y-3">{[1,2].map(i => <div key={i} className="h-32 bg-muted rounded-2xl" />)}</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-gray-900">Summer Goals</h2>
+        <h2 className="font-serif font-semibold text-foreground text-lg">Summer Goals</h2>
         <Button size="sm" onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-1" />Add Goal
         </Button>
       </div>
 
       {goals.length === 0 ? (
-        <Card className="p-12 text-center">
-          <Target className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">No goals yet</p>
-          <p className="text-sm text-gray-400 mt-1">Set your summer fitness goals</p>
+        <Card className="p-14 text-center">
+          <Target className="w-12 h-12 text-border-strong mx-auto mb-3" />
+          <p className="text-foreground font-serif font-medium text-lg">No goals yet</p>
+          <p className="text-sm text-muted-foreground mt-1">Set your summer fitness goals</p>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -140,25 +140,25 @@ function GoalCard({ goal, onAddSubtask, onToggleSubtask, onDelete }: {
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="font-semibold text-gray-900">{goal.title}</h3>
+            <h3 className="font-serif font-semibold text-foreground">{goal.title}</h3>
             <div className="flex items-center gap-2 mt-1">
               <Badge className={cn('text-xs', statusColor(goal.status))}>{goal.status.replace('_', ' ')}</Badge>
-              {goal.dueDate && <span className="text-xs text-gray-400">Due {formatDateShort(goal.dueDate)}</span>}
+              {goal.dueDate && <span className="text-xs text-muted-foreground">Due {formatDateShort(goal.dueDate)}</span>}
             </div>
           </div>
-          <button onClick={() => onDelete(goal._id!)} className="text-gray-300 hover:text-red-400 transition-colors">
+          <button onClick={() => onDelete(goal._id!)} className="text-border-strong hover:text-danger transition-colors">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
-        {goal.notes && <p className="text-sm text-gray-500 mt-2">{goal.notes}</p>}
+        {goal.notes && <p className="text-sm text-muted-foreground mt-2">{goal.notes}</p>}
         {total > 0 && (
-          <div className="mt-2">
-            <div className="flex justify-between text-xs text-gray-400 mb-1">
+          <div className="mt-2.5">
+            <div className="flex justify-between text-xs text-muted-foreground mb-1">
               <span>{completed}/{total} tasks</span>
               <span>{Math.round((completed / total) * 100)}%</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-1.5">
-              <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${(completed / total) * 100}%` }} />
+            <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+              <div className="bg-body h-1.5 rounded-full transition-all duration-500" style={{ width: `${(completed / total) * 100}%` }} />
             </div>
           </div>
         )}
@@ -167,10 +167,10 @@ function GoalCard({ goal, onAddSubtask, onToggleSubtask, onDelete }: {
         <div className="space-y-1.5 mb-3">
           {goal.subtasks.map((s, idx) => (
             <div key={idx} className="flex items-center gap-2 group">
-              <button onClick={() => onToggleSubtask(goal, idx)} className="text-gray-300 hover:text-green-500 transition-colors">
-                {s.completed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Circle className="w-4 h-4" />}
+              <button onClick={() => onToggleSubtask(goal, idx)} className="text-border-strong hover:text-success-deep hover:scale-110 transition-all">
+                {s.completed ? <CheckCircle2 className="w-4 h-4 text-success-deep" /> : <Circle className="w-4 h-4" />}
               </button>
-              <span className={cn('text-sm flex-1', s.completed && 'line-through text-gray-400')}>{s.title}</span>
+              <span className={cn('text-sm flex-1', s.completed && 'line-through text-muted-foreground')}>{s.title}</span>
             </div>
           ))}
         </div>

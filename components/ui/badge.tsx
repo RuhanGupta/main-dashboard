@@ -9,7 +9,7 @@ interface BadgeProps {
 export function Badge({ children, className, variant = 'default' }: BadgeProps) {
   return (
     <span className={cn(
-      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border',
+      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border tracking-wide',
       variant === 'outline' ? 'bg-transparent' : '',
       className
     )}>

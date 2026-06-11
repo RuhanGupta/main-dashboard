@@ -44,30 +44,30 @@ export function formatDateShort(date: Date | string): string {
 
 export function priorityColor(priority: string): string {
   const colors: Record<string, string> = {
-    urgent: 'text-red-500 bg-red-50 border-red-200',
-    high: 'text-orange-500 bg-orange-50 border-orange-200',
-    medium: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-    low: 'text-green-600 bg-green-50 border-green-200',
+    urgent: 'text-danger-deep bg-danger-soft border-danger-line',
+    high: 'text-warning-deep bg-warning-soft border-warning-line',
+    medium: 'text-info-deep bg-info-soft border-info-line',
+    low: 'text-success-deep bg-success-soft border-success-line',
   };
-  return colors[priority] ?? 'text-gray-500 bg-gray-50 border-gray-200';
+  return colors[priority] ?? 'text-muted-foreground bg-muted border-border';
 }
 
 export function statusColor(status: string): string {
   const colors: Record<string, string> = {
-    completed: 'text-green-600 bg-green-50 border-green-200',
-    in_progress: 'text-blue-600 bg-blue-50 border-blue-200',
-    not_started: 'text-gray-500 bg-gray-50 border-gray-200',
-    cancelled: 'text-red-400 bg-red-50 border-red-200',
+    completed: 'text-success-deep bg-success-soft border-success-line',
+    in_progress: 'text-info-deep bg-info-soft border-info-line',
+    not_started: 'text-muted-foreground bg-muted border-border',
+    cancelled: 'text-danger-deep bg-danger-soft border-danger-line',
   };
-  return colors[status] ?? 'text-gray-500 bg-gray-50 border-gray-200';
+  return colors[status] ?? 'text-muted-foreground bg-muted border-border';
 }
 
 export function domainColor(domain: string): string {
   const colors: Record<string, string> = {
-    academic: 'text-blue-600 bg-blue-50 border-blue-200',
-    extracurricular: 'text-purple-600 bg-purple-50 border-purple-200',
-    body: 'text-green-600 bg-green-50 border-green-200',
-    reflection: 'text-amber-600 bg-amber-50 border-amber-200',
+    academic: 'text-academic-deep bg-academic-soft border-academic-line',
+    extracurricular: 'text-extracurricular-deep bg-extracurricular-soft border-extracurricular-line',
+    body: 'text-body-deep bg-body-soft border-body-line',
+    reflection: 'text-reflection-deep bg-reflection-soft border-reflection-line',
   };
-  return colors[domain] ?? 'text-gray-500 bg-gray-50 border-gray-200';
+  return colors[domain] ?? 'text-muted-foreground bg-muted border-border';
 }

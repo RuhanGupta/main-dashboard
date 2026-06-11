@@ -40,7 +40,7 @@ export function AssignmentForm({ assignment, onSave, onCancel }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+        <label className="block text-sm font-medium text-foreground mb-1.5">Title *</label>
         <Input
           required
           value={form.title}
@@ -49,7 +49,7 @@ export function AssignmentForm({ assignment, onSave, onCancel }: Props) {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Course *</label>
+        <label className="block text-sm font-medium text-foreground mb-1.5">Course *</label>
         <Input
           required
           value={form.course}
@@ -59,7 +59,7 @@ export function AssignmentForm({ assignment, onSave, onCancel }: Props) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Due Date</label>
           <Input
             type="date"
             value={form.dueDate}
@@ -67,7 +67,7 @@ export function AssignmentForm({ assignment, onSave, onCancel }: Props) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Priority</label>
           <Select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value as any }))}>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -77,7 +77,7 @@ export function AssignmentForm({ assignment, onSave, onCancel }: Props) {
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+        <label className="block text-sm font-medium text-foreground mb-1.5">Status</label>
         <Select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))}>
           <option value="not_started">Not Started</option>
           <option value="in_progress">In Progress</option>
@@ -86,7 +86,7 @@ export function AssignmentForm({ assignment, onSave, onCancel }: Props) {
         </Select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+        <label className="block text-sm font-medium text-foreground mb-1.5">Notes</label>
         <Textarea
           value={form.notes}
           onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}

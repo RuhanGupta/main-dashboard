@@ -66,13 +66,15 @@ export function PomodoroTimer() {
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <Card className="w-full">
+    <Card className="w-full animate-fade-up">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <Timer className="w-4 h-4 text-indigo-600" />
-          <h3 className="font-semibold text-gray-900 text-sm">Pomodoro Timer</h3>
+        <div className="flex items-center gap-2.5">
+          <span className="w-7 h-7 rounded-lg bg-secondary/60 flex items-center justify-center">
+            <Timer className="w-3.5 h-3.5 text-primary-deep" />
+          </span>
+          <h3 className="font-serif font-semibold text-foreground text-sm">Pomodoro</h3>
           {isBreak && (
-            <span className="ml-auto text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-xs font-medium text-body-deep bg-body-soft px-2.5 py-0.5 rounded-full animate-pop">
               Break
             </span>
           )}
@@ -81,13 +83,13 @@ export function PomodoroTimer() {
       <CardContent>
         {/* Circular progress */}
         <div className="flex justify-center mb-5">
-          <div className="relative w-32 h-32">
+          <div className="relative w-36 h-36">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="54" fill="none" stroke="#f3f4f6" strokeWidth="8" />
+              <circle cx="60" cy="60" r="54" fill="none" stroke="var(--color-muted)" strokeWidth="7" />
               <circle
                 cx="60" cy="60" r="54" fill="none"
-                stroke={isBreak ? '#10b981' : '#6366f1'}
-                strokeWidth="8"
+                stroke={isBreak ? 'var(--color-body)' : 'var(--color-primary)'}
+                strokeWidth="7"
                 strokeLinecap="round"
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
@@ -95,8 +97,8 @@ export function PomodoroTimer() {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-bold text-gray-900 font-mono">{formatTime(timeLeft)}</span>
-              <span className="text-xs text-gray-400">{isBreak ? 'break' : 'focus'}</span>
+              <span className="text-[1.75rem] font-semibold text-foreground font-mono tabular-nums tracking-tight">{formatTime(timeLeft)}</span>
+              <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mt-0.5">{isBreak ? 'break' : 'focus'}</span>
             </div>
           </div>
         </div>
@@ -130,20 +132,20 @@ export function PomodoroTimer() {
         </div>
 
         {/* Total study time */}
-        <div className="bg-indigo-50 rounded-xl p-3">
+        <div className="bg-secondary/40 border border-secondary rounded-2xl p-3.5">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-indigo-600">Total Study Time</span>
+            <span className="text-xs font-medium text-primary-deep">Total Study Time</span>
             <button
               onClick={handleResetTotal}
-              className="text-xs text-indigo-400 hover:text-indigo-600 transition-colors"
+              className="text-xs text-primary/70 hover:text-primary-deep transition-colors"
             >
               Reset
             </button>
           </div>
-          <p className="text-xl font-bold text-indigo-700 font-mono">
+          <p className="text-xl font-semibold text-primary-deep font-mono tabular-nums">
             {formatTime(totalStudySeconds)}
           </p>
-          <p className="text-xs text-indigo-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {Math.floor(totalStudySeconds / 3600)}h {Math.floor((totalStudySeconds % 3600) / 60)}m studied today
           </p>
         </div>

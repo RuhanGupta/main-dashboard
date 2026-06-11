@@ -1,14 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { BookOpen, Star, Dumbbell, CheckCircle2, Clock, AlertCircle, ChevronRight } from 'lucide-react';
+import { BookOpen, Star, Dumbbell, CheckCircle2, Clock, Feather, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { IAssignment, IProject } from '@/types';
 import { WeeklyCalendar } from './WeeklyCalendar';
 import { TaskItem } from './TaskItem';
 import { DailyFocusPanel } from './DailyFocusPanel';
-import { Badge } from '@/components/ui/badge';
-import { priorityColor, statusColor, formatDateShort } from '@/lib/utils';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 interface DashboardData {
@@ -31,7 +29,7 @@ export function DashboardContent() {
   }, []);
 
   if (loading) return <DashboardSkeleton />;
-  if (!data) return <p className="text-gray-500">Failed to load dashboard.</p>;
+  if (!data) return <p className="text-muted-foreground">Failed to load dashboard.</p>;
 
   const { assignments, projectTasks, workouts, windowStart, windowEnd } = data;
 
@@ -54,11 +52,13 @@ export function DashboardContent() {
   const progressPct = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 stagger">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Good {getGreeting()}, let's get to work 👋</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <h1 className="font-serif text-[2rem] leading-tight font-semibold text-foreground tracking-tight">
+          Good {getGreeting()}, <span className="italic text-primary">let&apos;s get to work</span>
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1.5">
           {format(new Date(), 'EEEE, MMMM d, yyyy')} · Showing tasks from{' '}
           {format(new Date(windowStart), 'MMM d')} – {format(new Date(windowEnd), 'MMM d')}
         </p>
@@ -72,26 +72,26 @@ export function DashboardContent() {
         <StatCard
           label="Tasks This Week"
           value={totalItems}
-          icon={<Clock className="w-5 h-5 text-indigo-500" />}
-          color="bg-indigo-50"
+          icon={<Clock className="w-[18px] h-[18px] text-primary" />}
+          chip="bg-secondary/60"
         />
         <StatCard
           label="Completed"
           value={completedItems}
-          icon={<CheckCircle2 className="w-5 h-5 text-green-500" />}
-          color="bg-green-50"
+          icon={<CheckCircle2 className="w-[18px] h-[18px] text-body-deep" />}
+          chip="bg-body-soft"
         />
         <StatCard
           label="Assignments"
           value={assignments.length}
-          icon={<BookOpen className="w-5 h-5 text-blue-500" />}
-          color="bg-blue-50"
+          icon={<BookOpen className="w-[18px] h-[18px] text-academic-deep" />}
+          chip="bg-academic-soft"
         />
         <StatCard
           label="Projects"
           value={projectTasks.length}
-          icon={<Star className="w-5 h-5 text-purple-500" />}
-          color="bg-purple-50"
+          icon={<Star className="w-[18px] h-[18px] text-extracurricular-deep" />}
+          chip="bg-extracurricular-soft"
         />
       </div>
 
@@ -100,16 +100,16 @@ export function DashboardContent() {
         <Card>
           <CardContent className="py-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">Weekly Progress</span>
-              <span className="text-sm font-semibold text-indigo-600">{progressPct}%</span>
+              <span className="text-sm font-medium text-foreground">Weekly Progress</span>
+              <span className="text-sm font-semibold text-primary">{progressPct}%</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-2.5">
+            <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
               <div
-                className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500"
+                className="progress-gradient h-2.5 rounded-full transition-all duration-700"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1.5">{completedItems} of {totalItems} tasks completed</p>
+            <p className="text-xs text-muted-foreground mt-1.5">{completedItems} of {totalItems} tasks completed</p>
           </CardContent>
         </Card>
       )}
@@ -120,21 +120,21 @@ export function DashboardContent() {
       {/* Domain quick links */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { href: '/academics', label: 'Academics', icon: BookOpen, color: 'text-blue-600 bg-blue-50 border-blue-200' },
-          { href: '/extracurriculars', label: 'Extracurriculars', icon: Star, color: 'text-purple-600 bg-purple-50 border-purple-200' },
-          { href: '/body', label: 'Body', icon: Dumbbell, color: 'text-green-600 bg-green-50 border-green-200' },
-          { href: '/reflection', label: 'Reflection', icon: AlertCircle, color: 'text-amber-600 bg-amber-50 border-amber-200' },
+          { href: '/academics', label: 'Academics', icon: BookOpen, color: 'text-academic-deep bg-academic-soft border-academic-line' },
+          { href: '/extracurriculars', label: 'Extracurriculars', icon: Star, color: 'text-extracurricular-deep bg-extracurricular-soft border-extracurricular-line' },
+          { href: '/body', label: 'Body', icon: Dumbbell, color: 'text-body-deep bg-body-soft border-body-line' },
+          { href: '/reflection', label: 'Reflection', icon: Feather, color: 'text-reflection-deep bg-reflection-soft border-reflection-line' },
         ].map(({ href, label, icon: Icon, color }) => (
           <Link
             key={href}
             href={href}
-            className={`flex items-center justify-between p-4 rounded-xl border font-medium text-sm transition-all hover:shadow-sm ${color}`}
+            className={`group flex items-center justify-between p-4 rounded-2xl border font-medium text-sm lift ${color}`}
           >
             <div className="flex items-center gap-2">
               <Icon className="w-4 h-4" />
               {label}
             </div>
-            <ChevronRight className="w-4 h-4 opacity-60" />
+            <ArrowRight className="w-4 h-4 opacity-50 transition-transform duration-200 group-hover:translate-x-1 group-hover:opacity-100" />
           </Link>
         ))}
       </div>
@@ -145,16 +145,18 @@ export function DashboardContent() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-blue-600" />
-                <h3 className="font-semibold text-gray-900 text-sm">Assignments</h3>
+              <div className="flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-lg bg-academic-soft flex items-center justify-center">
+                  <BookOpen className="w-3.5 h-3.5 text-academic-deep" />
+                </span>
+                <h3 className="font-semibold text-foreground text-sm">Assignments</h3>
               </div>
-              <Link href="/academics" className="text-xs text-indigo-600 hover:underline">View all</Link>
+              <Link href="/academics" className="text-xs font-medium text-primary hover:text-primary-deep transition-colors">View all →</Link>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
             {assignments.length === 0 ? (
-              <p className="text-sm text-gray-400 py-2">No assignments due this week 🎉</p>
+              <p className="text-sm text-muted-foreground py-2">No assignments due this week 🎉</p>
             ) : (
               assignments.slice(0, 6).map(a => (
                 <TaskItem
@@ -175,16 +177,18 @@ export function DashboardContent() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-purple-600" />
-                <h3 className="font-semibold text-gray-900 text-sm">Extracurricular Tasks</h3>
+              <div className="flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-lg bg-extracurricular-soft flex items-center justify-center">
+                  <Star className="w-3.5 h-3.5 text-extracurricular-deep" />
+                </span>
+                <h3 className="font-semibold text-foreground text-sm">Extracurricular Tasks</h3>
               </div>
-              <Link href="/extracurriculars" className="text-xs text-indigo-600 hover:underline">View all</Link>
+              <Link href="/extracurriculars" className="text-xs font-medium text-primary hover:text-primary-deep transition-colors">View all →</Link>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
             {projectTasks.length === 0 ? (
-              <p className="text-sm text-gray-400 py-2">No tasks due this week 🎉</p>
+              <p className="text-sm text-muted-foreground py-2">No tasks due this week 🎉</p>
             ) : (
               projectTasks.slice(0, 6).map(t => (
                 <TaskItem
@@ -204,14 +208,16 @@ export function DashboardContent() {
   );
 }
 
-function StatCard({ label, value, icon, color }: { label: string; value: number; icon: React.ReactNode; color: string }) {
+function StatCard({ label, value, icon, chip }: { label: string; value: number; icon: React.ReactNode; chip: string }) {
   return (
-    <div className={`${color} rounded-xl p-4 border border-white/60`}>
-      <div className="flex items-center justify-between mb-1">
-        {icon}
-        <span className="text-2xl font-bold text-gray-900">{value}</span>
+    <div className="bg-card rounded-2xl p-4 border border-border shadow-card lift">
+      <div className="flex items-center justify-between mb-2">
+        <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${chip}`}>
+          {icon}
+        </span>
+        <span className="text-[1.7rem] font-serif font-semibold text-foreground tabular-nums">{value}</span>
       </div>
-      <p className="text-xs font-medium text-gray-600">{label}</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -219,11 +225,11 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="h-8 bg-gray-200 rounded-lg w-64" />
+      <div className="h-8 bg-muted rounded-xl w-64" />
       <div className="grid grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-gray-200 rounded-xl" />)}
+        {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-muted rounded-2xl" />)}
       </div>
-      <div className="h-48 bg-gray-200 rounded-xl" />
+      <div className="h-48 bg-muted rounded-2xl" />
     </div>
   );
 }
