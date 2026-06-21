@@ -21,6 +21,8 @@ export function AssignmentDetail({ id }: { id: string }) {
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
+  const [editingSubtaskIdx, setEditingSubtaskIdx] = useState<number | null>(null);
+  const [editSubtask, setEditSubtask] = useState({ title: '', startDate: '', dueDate: '', priority: 'medium' as const });
 
   const fetch_ = () =>
     fetch(`/api/assignments/${id}`)
@@ -59,6 +61,24 @@ export function AssignmentDetail({ id }: { id: string }) {
   const deleteSubtask = async (idx: number) => {
     const subtasks = (assignment?.subtasks ?? []).filter((_, i) => i !== idx);
     await updateAssignment({ subtasks });
+  };
+
+  const startEditSubtask = (idx: number) => {
+    const s = (assignment?.subtasks ?? [])[idx];
+    setEditSubtask({
+      title: s.title ?? '',
+      startDate: s.startDate ? new Date(s.startDate as string).toISOString().split('T')[0] : '',
+      dueDate: s.dueDate ? new Date(s.dueDate as string).toISOString().split('T')[0] : '',
+      priority: (s.priority ?? 'medium') as any,
+    });
+    setEditingSubtaskIdx(idx);
+  };
+
+  const saveEditSubtask = async (idx: number) => {
+    const subtasks = [...(assignment?.subtasks ?? [])];
+    subtasks[idx] = { ...subtasks[idx], ...editSubtask };
+    await updateAssignment({ subtasks });
+    setEditingSubtaskIdx(null);
   };
 
   const toggleSubtaskVisibility = async (idx: number) => {
@@ -191,13 +211,58 @@ export function AssignmentDetail({ id }: { id: string }) {
                     const assignmentHidden = assignment.counselorVisible === false;
                     const subtaskHidden = s.counselorVisible === false;
                     const effectivelyHidden = assignmentHidden || subtaskHidden;
+
+                    if (editingSubtaskIdx === idx) {
+                      return (
+                        <div key={idx} className="bg-muted/60 border border-border rounded-2xl p-3.5 space-y-2 animate-scale-in">
+                          <Input
+                            placeholder="Subtask title"
+                            value={editSubtask.title}
+                            onChange={e => setEditSubtask(es => ({ ...es, title: e.target.value }))}
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-xs text-muted-foreground mb-1">Start Date</label>
+                              <Input type="date" value={editSubtask.startDate} onChange={e => setEditSubtask(es => ({ ...es, startDate: e.target.value }))} />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-muted-foreground mb-1">Due Date</label>
+                              <Input type="date" value={editSubtask.dueDate} onChange={e => setEditSubtask(es => ({ ...es, dueDate: e.target.value }))} />
+                            </div>
+                          </div>
+                          <Select value={editSubtask.priority} onChange={e => setEditSubtask(es => ({ ...es, priority: e.target.value as any }))}>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                          </Select>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => saveEditSubtask(idx)}>Save</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingSubtaskIdx(null)}>Cancel</Button>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div key={idx} className={cn('flex items-center gap-2 p-2 rounded-xl hover:bg-muted/70 group transition-colors', effectivelyHidden && 'opacity-60')}>
                         <button onClick={() => toggleSubtask(idx)} className="text-border-strong hover:text-success-deep hover:scale-110 transition-all">
                           {s.completed ? <CheckCircle2 className="w-4 h-4 text-success-deep" /> : <Circle className="w-4 h-4" />}
                         </button>
-                        <span className={cn('text-sm flex-1', s.completed && 'line-through text-muted-foreground')}>{s.title}</span>
-                        {s.dueDate && <span className="text-xs text-muted-foreground">{formatDate(s.dueDate)}</span>}
+                        <div className="flex-1 min-w-0">
+                          <span className={cn('text-sm', s.completed && 'line-through text-muted-foreground')}>{s.title}</span>
+                          {(s.startDate || s.dueDate) && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {s.startDate && <span>Start {formatDate(s.startDate)}</span>}
+                              {s.startDate && s.dueDate && <span className="mx-1">·</span>}
+                              {s.dueDate && <span>Due {formatDate(s.dueDate)}</span>}
+                            </p>
+                          )}
+                        </div>
+                        {s.priority && <Badge className={cn('text-xs', priorityColor(s.priority))}>{s.priority}</Badge>}
+                        <button onClick={() => startEditSubtask(idx)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-all">
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => !assignmentHidden && toggleSubtaskVisibility(idx)}
                           disabled={assignmentHidden}

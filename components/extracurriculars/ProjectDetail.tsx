@@ -21,6 +21,8 @@ export function ProjectDetail({ id }: { id: string }) {
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
+  const [editingTaskIdx, setEditingTaskIdx] = useState<number | null>(null);
+  const [editTask, setEditTask] = useState({ title: '', startDate: '', dueDate: '', priority: 'medium' });
 
   const fetch_ = () =>
     fetch(`/api/projects/${id}`)
@@ -59,6 +61,24 @@ export function ProjectDetail({ id }: { id: string }) {
   const deleteTask = async (idx: number) => {
     const tasks = (project?.tasks ?? []).filter((_, i) => i !== idx);
     await updateProject({ tasks } as any);
+  };
+
+  const startEditTask = (idx: number) => {
+    const t = (project?.tasks as any[] ?? [])[idx];
+    setEditTask({
+      title: t.title ?? '',
+      startDate: t.startDate ? new Date(t.startDate).toISOString().split('T')[0] : '',
+      dueDate: t.dueDate ? new Date(t.dueDate).toISOString().split('T')[0] : '',
+      priority: t.priority ?? 'medium',
+    });
+    setEditingTaskIdx(idx);
+  };
+
+  const saveEditTask = async (idx: number) => {
+    const tasks = [...(project?.tasks as any[] ?? [])];
+    tasks[idx] = { ...tasks[idx], ...editTask };
+    await updateProject({ tasks } as any);
+    setEditingTaskIdx(null);
   };
 
   const toggleTaskVisibility = async (idx: number) => {
@@ -199,14 +219,58 @@ export function ProjectDetail({ id }: { id: string }) {
                     const projectHidden = project.counselorVisible === false;
                     const taskHidden = t.counselorVisible === false;
                     const effectivelyHidden = projectHidden || taskHidden;
+
+                    if (editingTaskIdx === idx) {
+                      return (
+                        <div key={idx} className="bg-muted/60 border border-border rounded-2xl p-3.5 space-y-2 animate-scale-in">
+                          <Input
+                            placeholder="Task title"
+                            value={editTask.title}
+                            onChange={e => setEditTask(et => ({ ...et, title: e.target.value }))}
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-xs text-muted-foreground mb-1">Start Date</label>
+                              <Input type="date" value={editTask.startDate} onChange={e => setEditTask(et => ({ ...et, startDate: e.target.value }))} />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-muted-foreground mb-1">Due Date</label>
+                              <Input type="date" value={editTask.dueDate} onChange={e => setEditTask(et => ({ ...et, dueDate: e.target.value }))} />
+                            </div>
+                          </div>
+                          <Select value={editTask.priority} onChange={e => setEditTask(et => ({ ...et, priority: e.target.value }))}>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                          </Select>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => saveEditTask(idx)}>Save</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingTaskIdx(null)}>Cancel</Button>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div key={idx} className={cn('flex items-center gap-2 p-2 rounded-xl hover:bg-muted/70 group transition-colors', effectivelyHidden && 'opacity-60')}>
                         <button onClick={() => toggleTask(idx)} className="text-border-strong hover:text-success-deep hover:scale-110 transition-all">
                           {t.status === 'completed' ? <CheckCircle2 className="w-4 h-4 text-success-deep" /> : <Circle className="w-4 h-4" />}
                         </button>
-                        <span className={cn('text-sm flex-1', t.status === 'completed' && 'line-through text-muted-foreground')}>{t.title}</span>
-                        {t.dueDate && <span className="text-xs text-muted-foreground">{formatDateShort(t.dueDate)}</span>}
+                        <div className="flex-1 min-w-0">
+                          <span className={cn('text-sm', t.status === 'completed' && 'line-through text-muted-foreground')}>{t.title}</span>
+                          {(t.startDate || t.dueDate) && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {t.startDate && <span>Start {formatDateShort(t.startDate)}</span>}
+                              {t.startDate && t.dueDate && <span className="mx-1">·</span>}
+                              {t.dueDate && <span>Due {formatDateShort(t.dueDate)}</span>}
+                            </p>
+                          )}
+                        </div>
                         {t.priority && <Badge className={cn('text-xs', priorityColor(t.priority))}>{t.priority}</Badge>}
+                        <button onClick={() => startEditTask(idx)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-all">
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => !projectHidden && toggleTaskVisibility(idx)}
                           disabled={projectHidden}

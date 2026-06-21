@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Types } from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Assignment } from '@/models/Assignment';
 import {
@@ -162,11 +163,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
   }
 
-  const updated = await Assignment.findOneAndUpdate(
-    { _id: id, userId: authResult.user.id },
-    body,
-    { new: true, strict: false }
-  ).lean();
+  await Assignment.collection.updateOne(
+    { _id: new Types.ObjectId(id), userId: authResult.user.id },
+    { $set: body }
+  );
+  const updated = await Assignment.findOne({ _id: id, userId: authResult.user.id }).lean();
   return NextResponse.json(updated);
 }
 
