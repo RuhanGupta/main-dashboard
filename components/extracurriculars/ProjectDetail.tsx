@@ -17,7 +17,7 @@ export function ProjectDetail({ id }: { id: string }) {
   const [project, setProject] = useState<IProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', dueDate: '', priority: 'medium' });
+  const [newTask, setNewTask] = useState({ title: '', startDate: '', dueDate: '', priority: 'medium' });
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
@@ -46,7 +46,7 @@ export function ProjectDetail({ id }: { id: string }) {
     if (!newTask.title.trim()) return;
     const tasks = [...(project?.tasks ?? []), { ...newTask, status: 'not_started', subtasks: [] }];
     await updateProject({ tasks } as any);
-    setNewTask({ title: '', dueDate: '', priority: 'medium' });
+    setNewTask({ title: '', startDate: '', dueDate: '', priority: 'medium' });
     setShowTaskForm(false);
   };
 
@@ -105,6 +105,7 @@ export function ProjectDetail({ id }: { id: string }) {
           <div className="flex items-center gap-2 mt-2.5 flex-wrap">
             {project.priority && <Badge className={cn(priorityColor(project.priority))}>{project.priority}</Badge>}
             {project.status && <Badge className={cn(statusColor(project.status))}>{project.status.replace('_', ' ')}</Badge>}
+            {project.startDate && <span className="text-sm text-muted-foreground">Start {formatDate(project.startDate)}</span>}
             {project.dueDate && <span className="text-sm text-muted-foreground">Due {formatDate(project.dueDate)}</span>}
           </div>
         </div>
@@ -169,14 +170,21 @@ export function ProjectDetail({ id }: { id: string }) {
                 <div className="bg-muted/60 border border-border rounded-2xl p-3.5 mb-3 space-y-2 animate-scale-in">
                   <Input placeholder="Task title" value={newTask.title} onChange={e => setNewTask(t => ({ ...t, title: e.target.value }))} />
                   <div className="grid grid-cols-2 gap-2">
-                    <Input type="date" value={newTask.dueDate} onChange={e => setNewTask(t => ({ ...t, dueDate: e.target.value }))} />
-                    <Select value={newTask.priority} onChange={e => setNewTask(t => ({ ...t, priority: e.target.value }))}>
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </Select>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Start Date</label>
+                      <Input type="date" value={newTask.startDate} onChange={e => setNewTask(t => ({ ...t, startDate: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Due Date</label>
+                      <Input type="date" value={newTask.dueDate} onChange={e => setNewTask(t => ({ ...t, dueDate: e.target.value }))} />
+                    </div>
                   </div>
+                  <Select value={newTask.priority} onChange={e => setNewTask(t => ({ ...t, priority: e.target.value }))}>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </Select>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={addTask}>Add Task</Button>
                     <Button size="sm" variant="ghost" onClick={() => setShowTaskForm(false)}>Cancel</Button>

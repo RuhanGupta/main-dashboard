@@ -18,6 +18,7 @@ type ProjectSubtaskBody = {
   _id?: IdLike;
   title: string;
   description?: string;
+  startDate?: DateInput;
   dueDate?: DateInput;
   priority?: string;
   status?: string;
@@ -30,6 +31,7 @@ type ProjectTaskBody = {
   _id?: IdLike;
   title: string;
   description?: string;
+  startDate?: DateInput;
   dueDate?: DateInput;
   priority?: string;
   status?: string;
@@ -68,6 +70,7 @@ type ProjectRecord = Required<Pick<ProjectBody, 'title'>> & {
 function normalizeSubtask(subtask: ProjectSubtaskBody): ProjectSubtaskBody {
   return {
     ...subtask,
+    startDate: normalizeDateInput(subtask.startDate),
     dueDate: normalizeDateInput(subtask.dueDate),
   };
 }
@@ -75,6 +78,7 @@ function normalizeSubtask(subtask: ProjectSubtaskBody): ProjectSubtaskBody {
 function normalizeTask(task: ProjectTaskBody): ProjectTaskBody {
   return {
     ...task,
+    startDate: normalizeDateInput(task.startDate),
     dueDate: normalizeDateInput(task.dueDate),
     subtasks: Array.isArray(task.subtasks) ? task.subtasks.map(normalizeSubtask) : task.subtasks,
   };

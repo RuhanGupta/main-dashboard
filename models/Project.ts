@@ -5,6 +5,7 @@ const LinkSchema = new Schema({ title: String, url: String });
 const SubtaskSchema = new Schema({
   title: { type: String, required: true },
   description: String,
+  startDate: Date,
   dueDate: Date,
   priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
   status: { type: String, enum: ['not_started', 'in_progress', 'completed', 'cancelled'], default: 'not_started' },
@@ -16,6 +17,7 @@ const SubtaskSchema = new Schema({
 const TaskSchema = new Schema({
   title: { type: String, required: true },
   description: String,
+  startDate: Date,
   dueDate: Date,
   priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
   status: { type: String, enum: ['not_started', 'in_progress', 'completed', 'cancelled'], default: 'not_started' },

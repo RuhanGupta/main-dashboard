@@ -18,6 +18,7 @@ type AssignmentSubtaskBody = {
   _id?: IdLike;
   title: string;
   description?: string;
+  startDate?: DateInput;
   dueDate?: DateInput;
   priority?: string;
   status?: string;
@@ -56,6 +57,7 @@ type AssignmentRecord = Required<Pick<AssignmentBody, 'title' | 'course'>> & {
 function normalizeSubtask(subtask: AssignmentSubtaskBody): AssignmentSubtaskBody {
   return {
     ...subtask,
+    startDate: normalizeDateInput(subtask.startDate),
     dueDate: normalizeDateInput(subtask.dueDate),
   };
 }

@@ -6,6 +6,7 @@ export interface ISubtask {
   _id?: string;
   title: string;
   description?: string;
+  startDate?: Date | string;
   dueDate?: Date | string;
   priority: Priority;
   status: Status;

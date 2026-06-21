@@ -3,113 +3,136 @@ import { useEffect, useMemo, useState } from 'react';
 import { addMonths, subMonths, getDaysInMonth, startOfMonth, format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { IAssignment, IProject } from '@/types';
+import { IAssignment, IProject, ISubtask } from '@/types';
+
+// ── Types ────────────────────────────────────────────────────────────
 
 interface BodyGoal {
   _id: string;
   title: string;
   status: string;
   dueDate?: string;
-  notes?: string;
 }
 
 type Category = 'academic' | 'project' | 'fitness';
 
-interface TimelineItem {
+interface RowDef {
   id: string;
   title: string;
   subtitle?: string;
   startDay: number | null;
   endDay: number | null;
+  crossesLeft: boolean;
+  crossesRight: boolean;
   isMilestone: boolean;
   status: string;
   category: Category;
+  depth: 0 | 1;
 }
 
-const CATEGORY_CONFIG: Record<Category, { label: string; bar: string; text: string; header: string }> = {
+// ── Category config ───────────────────────────────────────────────────
+
+const CAT: Record<Category, {
+  label: string;
+  parentBar: string;
+  childBar: string;
+  text: string;
+  headerBg: string;
+  milestoneParent: string;
+  milestoneChild: string;
+}> = {
   academic: {
     label: 'Academics',
-    bar: 'bg-academic',
+    parentBar: 'bg-academic opacity-90',
+    childBar: 'bg-academic opacity-55',
     text: 'text-academic-deep',
-    header: 'bg-academic-soft',
+    headerBg: 'bg-academic-soft',
+    milestoneParent: 'bg-academic',
+    milestoneChild: 'bg-academic opacity-60',
   },
   project: {
     label: 'Projects',
-    bar: 'bg-extracurricular',
+    parentBar: 'bg-extracurricular opacity-90',
+    childBar: 'bg-extracurricular opacity-55',
     text: 'text-extracurricular-deep',
-    header: 'bg-extracurricular-soft',
+    headerBg: 'bg-extracurricular-soft',
+    milestoneParent: 'bg-extracurricular',
+    milestoneChild: 'bg-extracurricular opacity-60',
   },
   fitness: {
     label: 'Fitness Goals',
-    bar: 'bg-body',
+    parentBar: 'bg-body opacity-90',
+    childBar: 'bg-body opacity-55',
     text: 'text-body-deep',
-    header: 'bg-body-soft',
+    headerBg: 'bg-body-soft',
+    milestoneParent: 'bg-body',
+    milestoneChild: 'bg-body opacity-60',
   },
 };
 
-function getMonthOverlap(
-  startDate: Date | null,
-  endDate: Date | null,
+// ── Layout constants ──────────────────────────────────────────────────
+
+const LABEL_W = 210;
+const DAY_W   = 32;
+const BAR_PAD = 4;    // px margin inside lane for bar top/bottom
+
+// ── Date helpers ──────────────────────────────────────────────────────
+
+function buildRow(
+  id: string,
+  title: string,
+  subtitle: string | undefined,
+  rawStart: Date | string | null | undefined,
+  rawEnd: Date | string | null | undefined,
+  status: string,
+  category: Category,
+  depth: 0 | 1,
   monthStart: Date,
   daysInMonth: number,
-): { startDay: number | null; endDay: number | null; isMilestone: boolean } {
+): RowDef | null {
+  const sd = rawStart ? new Date(rawStart as string) : null;
+  const ed = rawEnd   ? new Date(rawEnd   as string) : null;
   const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth(), daysInMonth, 23, 59, 59);
-  const inThisMonth = (d: Date) =>
+  const inMonth  = (d: Date) =>
     d.getFullYear() === monthStart.getFullYear() && d.getMonth() === monthStart.getMonth();
 
-  if (startDate && endDate) {
-    // Bar: show if range overlaps with this month
-    if (endDate < monthStart || startDate > monthEnd) return { startDay: null, endDay: null, isMilestone: false };
-    const sd = startDate < monthStart ? 1 : startDate.getDate();
-    const ed = endDate > monthEnd ? daysInMonth : endDate.getDate();
-    return { startDay: sd, endDay: ed, isMilestone: false };
+  let startDay: number | null = null;
+  let endDay:   number | null = null;
+  let crossesLeft  = false;
+  let crossesRight = false;
+  let isMilestone  = false;
+
+  if (sd && ed) {
+    if (ed < monthStart || sd > monthEnd) return null;
+    crossesLeft  = sd < monthStart;
+    crossesRight = ed > monthEnd;
+    startDay = crossesLeft  ? 1           : sd.getDate();
+    endDay   = crossesRight ? daysInMonth : ed.getDate();
+  } else if (ed) {
+    if (!inMonth(ed)) return null;
+    startDay = ed.getDate();
+    endDay   = ed.getDate();
+    isMilestone = true;
+  } else if (sd) {
+    if (!inMonth(sd)) return null;
+    startDay = sd.getDate();
+    endDay   = sd.getDate();
+    isMilestone = true;
+  } else {
+    return null;
   }
 
-  if (endDate) {
-    // Milestone: only show in the month the date falls in
-    if (!inThisMonth(endDate)) return { startDay: null, endDay: null, isMilestone: true };
-    return { startDay: endDate.getDate(), endDay: endDate.getDate(), isMilestone: true };
-  }
-
-  if (startDate) {
-    if (!inThisMonth(startDate)) return { startDay: null, endDay: null, isMilestone: true };
-    return { startDay: startDate.getDate(), endDay: startDate.getDate(), isMilestone: true };
-  }
-
-  return { startDay: null, endDay: null, isMilestone: false };
+  return { id, title, subtitle, startDay, endDay, crossesLeft, crossesRight, isMilestone, status, category, depth };
 }
 
-function toItem(
-  raw: IAssignment | IProject | (BodyGoal & { startDate?: string }),
-  category: Category,
-  monthStart: Date,
-  daysInMonth: number,
-  subtitle?: string,
-): TimelineItem | null {
-  const startDate = raw.startDate ? new Date(raw.startDate as string) : null;
-  const endDate = raw.dueDate ? new Date(raw.dueDate as string) : null;
-
-  const { startDay, endDay, isMilestone } = getMonthOverlap(startDate, endDate, monthStart, daysInMonth);
-  if (startDay === null && endDay === null) return null;
-
-  return {
-    id: String((raw as { _id?: string })._id ?? Math.random()),
-    title: raw.title,
-    subtitle,
-    startDay,
-    endDay,
-    isMilestone,
-    status: (raw as { status?: string }).status ?? 'not_started',
-    category,
-  };
-}
+// ── Main component ────────────────────────────────────────────────────
 
 export function SummerTimeline() {
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
   const [assignments, setAssignments] = useState<IAssignment[]>([]);
-  const [projects, setProjects] = useState<IProject[]>([]);
-  const [goals, setGoals] = useState<BodyGoal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [projects, setProjects]       = useState<IProject[]>([]);
+  const [goals, setGoals]             = useState<BodyGoal[]>([]);
+  const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -129,45 +152,84 @@ export function SummerTimeline() {
   const today = new Date();
   const todayDay =
     today.getFullYear() === currentMonth.getFullYear() &&
-    today.getMonth() === currentMonth.getMonth()
-      ? today.getDate()
-      : null;
+    today.getMonth()    === currentMonth.getMonth()
+      ? today.getDate() : null;
 
-  const grouped = useMemo(() => {
-    const academic: TimelineItem[] = [];
-    const project: TimelineItem[] = [];
-    const fitness: TimelineItem[] = [];
+  // Build flat list of rows: parent + children interleaved
+  const rows = useMemo<RowDef[]>(() => {
+    const out: RowDef[] = [];
 
     for (const a of assignments) {
-      const item = toItem(a, 'academic', currentMonth, daysInMonth, a.course);
-      if (item) academic.push(item);
-    }
-    for (const p of projects) {
-      const item = toItem(p, 'project', currentMonth, daysInMonth, p.description?.slice(0, 50));
-      if (item) project.push(item);
-    }
-    for (const g of goals) {
-      const item = toItem(g as BodyGoal & { startDate?: string }, 'fitness', currentMonth, daysInMonth);
-      if (item) fitness.push(item);
+      const parent = buildRow(
+        String(a._id), a.title, a.course,
+        a.startDate, a.dueDate, a.status ?? 'not_started', 'academic', 0,
+        currentMonth, daysInMonth,
+      );
+      if (!parent) continue;
+      out.push(parent);
+      for (const s of (a.subtasks ?? []) as (ISubtask & { startDate?: string })[]) {
+        const child = buildRow(
+          `${a._id}-${s._id}`, s.title, undefined,
+          s.startDate, s.dueDate, s.status ?? 'not_started', 'academic', 1,
+          currentMonth, daysInMonth,
+        );
+        if (child) out.push(child);
+      }
     }
 
-    return { academic, project, fitness };
+    for (const p of projects) {
+      const parent = buildRow(
+        String(p._id), p.title, p.description?.slice(0, 40),
+        p.startDate, p.dueDate, p.status ?? 'not_started', 'project', 0,
+        currentMonth, daysInMonth,
+      );
+      if (!parent) continue;
+      out.push(parent);
+      for (const t of (p.tasks ?? []) as any[]) {
+        const child = buildRow(
+          `${p._id}-${t._id}`, t.title, undefined,
+          t.startDate, t.dueDate, t.status ?? 'not_started', 'project', 1,
+          currentMonth, daysInMonth,
+        );
+        if (child) out.push(child);
+      }
+    }
+
+    for (const g of goals) {
+      const row = buildRow(
+        g._id, g.title, undefined,
+        undefined, g.dueDate, g.status, 'fitness', 0,
+        currentMonth, daysInMonth,
+      );
+      if (row) out.push(row);
+    }
+
+    return out;
   }, [assignments, projects, goals, currentMonth, daysInMonth]);
 
-  const totalItems = grouped.academic.length + grouped.project.length + grouped.fitness.length;
+  // Group by category for section headers
+  const grouped = useMemo(() => {
+    const result: { cat: Category; rows: RowDef[] }[] = [];
+    for (const cat of ['academic', 'project', 'fitness'] as Category[]) {
+      const catRows = rows.filter(r => r.category === cat);
+      if (catRows.length > 0) result.push({ cat, rows: catRows });
+    }
+    return result;
+  }, [rows]);
 
-  const LABEL_W = 192; // px — label column width
-  const DAY_W = 32;    // px — minimum width per day column
+  const totalW = LABEL_W + daysInMonth * DAY_W;
 
   return (
-    <div className="p-6 sm:p-8">
-      {/* Page header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 sm:p-8 max-w-[1400px]">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6 gap-4">
         <div>
           <h1 className="font-serif text-2xl font-semibold text-foreground">Summer Timeline</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Your plan at a glance — set start &amp; due dates on items to see them here</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Set start &amp; due dates on items and subtasks to see them here
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setCurrentMonth(m => subMonths(m, 1))}
             className="p-2 rounded-full border border-border hover:bg-muted transition-colors"
@@ -190,14 +252,16 @@ export function SummerTimeline() {
 
       {loading ? (
         <div className="space-y-2 animate-pulse">
-          {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-10 bg-muted rounded-xl" />)}
+          {[1, 2, 3, 4, 5, 6, 7].map(i => (
+            <div key={i} className={cn('bg-muted rounded-xl', i % 3 === 0 ? 'h-7' : 'h-10')} />
+          ))}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-card">
-          <div style={{ minWidth: LABEL_W + daysInMonth * DAY_W }}>
+          <div style={{ minWidth: totalW }}>
 
-            {/* Day-number header row */}
-            <div className="flex border-b border-border bg-card sticky top-0 z-20">
+            {/* ── Day-number header ── */}
+            <div className="flex border-b border-border sticky top-0 z-20 bg-card">
               <div
                 style={{ width: LABEL_W, minWidth: LABEL_W }}
                 className="shrink-0 border-r border-border px-4 py-2.5 text-xs font-medium text-muted-foreground"
@@ -207,16 +271,14 @@ export function SummerTimeline() {
               <div className="flex-1 flex">
                 {days.map(d => {
                   const dow = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d).getDay();
-                  const isWeekend = dow === 0 || dow === 6;
-                  const isToday = d === todayDay;
                   return (
                     <div
                       key={d}
                       style={{ width: DAY_W, minWidth: DAY_W }}
                       className={cn(
-                        'text-center text-[11px] py-2.5 border-r border-border/40 last:border-r-0 font-medium',
-                        isWeekend && 'bg-muted/50',
-                        isToday ? 'text-primary font-bold' : 'text-muted-foreground',
+                        'text-center text-[11px] py-2.5 border-r border-border/40 last:border-r-0 font-medium select-none',
+                        (dow === 0 || dow === 6) && 'bg-muted/50 text-muted-foreground/60',
+                        d === todayDay ? 'text-primary font-bold' : 'text-muted-foreground',
                       )}
                     >
                       {d}
@@ -226,84 +288,119 @@ export function SummerTimeline() {
               </div>
             </div>
 
-            {/* Groups */}
-            {totalItems === 0 ? (
+            {/* ── Empty state ── */}
+            {rows.length === 0 && (
               <div className="py-20 text-center">
                 <p className="font-serif text-lg text-foreground">No items this month</p>
-                <p className="text-sm text-muted-foreground mt-1.5">
-                  Add start and due dates to assignments and projects, or target dates to fitness goals.
+                <p className="text-sm text-muted-foreground mt-1.5 max-w-sm mx-auto">
+                  Add start and due dates to assignments, projects, or their subtasks — they'll appear here as Gantt bars.
                 </p>
               </div>
-            ) : (
-              (['academic', 'project', 'fitness'] as Category[]).map(cat => {
-                const items = grouped[cat];
-                if (items.length === 0) return null;
-                const cfg = CATEGORY_CONFIG[cat];
-                return (
-                  <div key={cat}>
-                    {/* Group header */}
-                    <div className={cn('flex border-b border-border', cfg.header)}>
-                      <div
-                        style={{ width: LABEL_W, minWidth: LABEL_W }}
-                        className={cn('shrink-0 border-r border-border px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest', cfg.text)}
-                      >
-                        {cfg.label}
-                      </div>
-                      <div className="flex-1 flex">
-                        {days.map(d => {
-                          const dow = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d).getDay();
-                          return (
-                            <div
-                              key={d}
-                              style={{ width: DAY_W, minWidth: DAY_W }}
-                              className={cn(
-                                'border-r border-border/30 last:border-r-0',
-                                (dow === 0 || dow === 6) && 'bg-muted/30',
-                              )}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Item rows */}
-                    {items.map(item => (
-                      <ItemRow
-                        key={item.id}
-                        item={item}
-                        days={days}
-                        daysInMonth={daysInMonth}
-                        todayDay={todayDay}
-                        labelW={LABEL_W}
-                        dayW={DAY_W}
-                        cfg={cfg}
-                        monthStart={currentMonth}
-                      />
-                    ))}
-                  </div>
-                );
-              })
             )}
+
+            {/* ── Grouped sections ── */}
+            {grouped.map(({ cat, rows: catRows }) => {
+              const cfg = CAT[cat];
+              return (
+                <div key={cat}>
+                  {/* Section header */}
+                  <div className={cn('flex border-b border-border/60', cfg.headerBg)}>
+                    <div
+                      style={{ width: LABEL_W, minWidth: LABEL_W }}
+                      className={cn('shrink-0 border-r border-border/40 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest', cfg.text)}
+                    >
+                      {cfg.label}
+                    </div>
+                    <ChartLane
+                      days={days}
+                      daysInMonth={daysInMonth}
+                      todayDay={todayDay}
+                      monthStart={currentMonth}
+                      dayW={DAY_W}
+                      height={24}
+                      isEmpty
+                    />
+                  </div>
+
+                  {/* Item rows */}
+                  {catRows.map((row, i) => {
+                    const isLastInSection = i === catRows.length - 1;
+                    const rowH = row.depth === 0 ? 44 : 30;
+                    return (
+                      <div
+                        key={row.id}
+                        className={cn(
+                          'flex',
+                          isLastInSection ? 'border-b border-border/60' : 'border-b border-border/30',
+                          row.depth === 1 && 'bg-muted/10',
+                          'hover:bg-muted/20 transition-colors',
+                        )}
+                      >
+                        {/* Label */}
+                        <div
+                          style={{ width: LABEL_W, minWidth: LABEL_W, height: rowH }}
+                          className="shrink-0 border-r border-border/40 flex flex-col justify-center overflow-hidden"
+                        >
+                          <div className={cn('flex items-center gap-1.5', row.depth === 1 ? 'pl-8 pr-3' : 'px-4')}>
+                            {row.depth === 1 && (
+                              <span className="w-2 h-px bg-border-strong shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <p className={cn(
+                                'font-medium text-foreground truncate leading-tight',
+                                row.depth === 0 ? 'text-[12px]' : 'text-[11px]',
+                                row.status === 'completed' && 'line-through text-muted-foreground',
+                              )}>
+                                {row.title}
+                              </p>
+                              {row.subtitle && (
+                                <p className="text-[10px] text-muted-foreground truncate leading-tight">{row.subtitle}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Chart lane */}
+                        <ChartLane
+                          days={days}
+                          daysInMonth={daysInMonth}
+                          todayDay={todayDay}
+                          monthStart={currentMonth}
+                          dayW={DAY_W}
+                          height={rowH}
+                          row={row}
+                          cfg={cfg}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Legend */}
-      {!loading && (
+      {!loading && rows.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-4 px-1">
           {(['academic', 'project', 'fitness'] as Category[]).map(cat => (
             <div key={cat} className="flex items-center gap-1.5">
-              <div className={cn('w-4 h-2.5 rounded-full', CATEGORY_CONFIG[cat].bar)} />
-              <span className="text-xs text-muted-foreground">{CATEGORY_CONFIG[cat].label}</span>
+              <div className={cn('w-5 h-3 rounded-full', CAT[cat].milestoneParent)} />
+              <span className="text-xs text-muted-foreground">{CAT[cat].label}</span>
             </div>
           ))}
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rotate-45 rounded-[2px] bg-foreground/50" />
-            <span className="text-xs text-muted-foreground">Single date (milestone)</span>
+            <div className="w-5 h-1.5 rounded-full bg-foreground/30" />
+            <span className="text-xs text-muted-foreground">Subtask / task</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rotate-45 rounded-[2px] bg-foreground/40" />
+            <span className="text-xs text-muted-foreground">Single date</span>
           </div>
           {todayDay && (
             <div className="flex items-center gap-1.5">
-              <div className="w-[2px] h-3.5 bg-primary rounded-full" />
+              <div className="w-[2px] h-4 rounded-full bg-primary" />
               <span className="text-xs text-muted-foreground">Today</span>
             </div>
           )}
@@ -313,104 +410,158 @@ export function SummerTimeline() {
   );
 }
 
-function ItemRow({
-  item,
+// ── ChartLane ─────────────────────────────────────────────────────────
+
+function ChartLane({
   days,
   daysInMonth,
   todayDay,
-  labelW,
-  dayW,
-  cfg,
   monthStart,
+  dayW,
+  height,
+  row,
+  cfg,
+  isEmpty = false,
 }: {
-  item: TimelineItem;
   days: number[];
   daysInMonth: number;
   todayDay: number | null;
-  labelW: number;
-  dayW: number;
-  cfg: { bar: string; text: string };
   monthStart: Date;
+  dayW: number;
+  height: number;
+  row?: RowDef;
+  cfg?: (typeof CAT)[Category];
+  isEmpty?: boolean;
 }) {
-  const ROW_H = 40;
-  const BAR_PAD = 5;
+  return (
+    <div className="flex-1 relative" style={{ height }}>
+      {/* Weekend shading */}
+      {days.map(d => {
+        const dow = new Date(monthStart.getFullYear(), monthStart.getMonth(), d).getDay();
+        if (dow !== 0 && dow !== 6) return null;
+        return (
+          <div
+            key={d}
+            className="absolute top-0 bottom-0 bg-muted/25 pointer-events-none"
+            style={{ left: (d - 1) * dayW, width: dayW }}
+          />
+        );
+      })}
+
+      {/* Today line */}
+      {todayDay && (
+        <div
+          className="absolute top-0 bottom-0 w-[2px] bg-primary/20 pointer-events-none z-10"
+          style={{ left: (todayDay - 0.5) * dayW - 1 }}
+        />
+      )}
+
+      {/* Column separators */}
+      {!isEmpty && days.map(d => (
+        <div
+          key={d}
+          className="absolute top-0 bottom-0 border-r border-border/20 pointer-events-none"
+          style={{ left: d * dayW - 1 }}
+        />
+      ))}
+
+      {/* Bar or milestone */}
+      {row && cfg && row.startDay !== null && row.endDay !== null && (
+        row.isMilestone
+          ? <MilestoneShape row={row} cfg={cfg} daysInMonth={daysInMonth} dayW={dayW} height={height} />
+          : <GanttBar row={row} cfg={cfg} daysInMonth={daysInMonth} dayW={dayW} height={height} />
+      )}
+    </div>
+  );
+}
+
+// ── GanttBar ──────────────────────────────────────────────────────────
+
+function GanttBar({
+  row, cfg, daysInMonth, dayW, height,
+}: {
+  row: RowDef;
+  cfg: (typeof CAT)[Category];
+  daysInMonth: number;
+  dayW: number;
+  height: number;
+}) {
+  const isParent = row.depth === 0;
+  const barH     = isParent ? height - BAR_PAD * 2 : height - BAR_PAD * 2.5;
+  const barTop   = isParent ? BAR_PAD : BAR_PAD * 1.25;
+
+  const left  = (row.startDay! - 1) * dayW + (row.crossesLeft  ? 0 : 3);
+  const right = (daysInMonth - row.endDay!) * dayW + (row.crossesRight ? 0 : 3);
+  const width = (row.endDay! - row.startDay! + 1) * dayW
+    - (row.crossesLeft  ? 0 : 3)
+    - (row.crossesRight ? 0 : 3);
+
+  const barClass = isParent ? cfg.parentBar : cfg.childBar;
+  const roundL = row.crossesLeft  ? 'rounded-l-none' : 'rounded-l-full';
+  const roundR = row.crossesRight ? 'rounded-r-none' : 'rounded-r-full';
 
   return (
-    <div className="flex border-b border-border/50 hover:bg-muted/20 transition-colors">
-      {/* Label */}
-      <div
-        style={{ width: labelW, minWidth: labelW, height: ROW_H }}
-        className="shrink-0 border-r border-border/60 px-4 flex flex-col justify-center"
-      >
-        <p className="text-[12px] font-medium text-foreground truncate leading-tight">{item.title}</p>
-        {item.subtitle && (
-          <p className="text-[11px] text-muted-foreground truncate leading-tight">{item.subtitle}</p>
-        )}
-      </div>
-
-      {/* Chart lane */}
-      <div className="flex-1 relative" style={{ height: ROW_H }}>
-        {/* Weekend column shading */}
-        {days.map(d => {
-          const dow = new Date(monthStart.getFullYear(), monthStart.getMonth(), d).getDay();
-          if (dow !== 0 && dow !== 6) return null;
-          return (
-            <div
-              key={d}
-              className="absolute top-0 bottom-0 bg-muted/30 pointer-events-none"
-              style={{ left: (d - 1) * dayW, width: dayW }}
-            />
-          );
-        })}
-
-        {/* Today line */}
-        {todayDay && (
-          <div
-            className="absolute top-0 bottom-0 w-[2px] bg-primary/25 pointer-events-none"
-            style={{ left: (todayDay - 0.5) * dayW }}
-          />
-        )}
-
-        {/* Bar or milestone */}
-        {item.startDay !== null && item.endDay !== null && (
-          item.isMilestone ? (
-            // Diamond
-            <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
-              style={{ left: (item.startDay - 0.5) * dayW }}
-              title={item.title}
-            >
-              <div
-                className={cn(
-                  'w-3 h-3 rotate-45 rounded-[2px]',
-                  cfg.bar,
-                  item.status === 'completed' ? 'opacity-40' : 'opacity-85',
-                )}
-              />
-            </div>
-          ) : (
-            // Gantt bar
-            <div
-              className={cn(
-                'absolute flex items-center px-2 rounded-full overflow-hidden',
-                cfg.bar,
-                item.status === 'completed' ? 'opacity-35' : 'opacity-85',
-              )}
-              style={{
-                left: (item.startDay - 1) * dayW + BAR_PAD,
-                top: BAR_PAD,
-                bottom: BAR_PAD,
-                width: Math.max((item.endDay - item.startDay + 1) * dayW - BAR_PAD * 2, 8),
-              }}
-              title={item.title}
-            >
-              <span className="text-[10px] font-semibold text-white truncate leading-none select-none">
-                {item.title}
-              </span>
-            </div>
-          )
-        )}
-      </div>
+    <div
+      className={cn(
+        'absolute flex items-center overflow-hidden z-10',
+        barClass,
+        roundL,
+        roundR,
+        row.status === 'completed' && 'opacity-40',
+      )}
+      style={{ left, top: barTop, height: barH, width: Math.max(width, 4) }}
+      title={`${row.title}${row.subtitle ? ` · ${row.subtitle}` : ''}`}
+    >
+      {/* Arrow caps for cross-month bars */}
+      {row.crossesLeft && (
+        <span className="text-white/80 text-[9px] pl-1 leading-none shrink-0">◂</span>
+      )}
+      {width > 28 && (
+        <span
+          className={cn(
+            'truncate leading-none select-none',
+            isParent ? 'text-[10px] font-semibold text-white px-2' : 'text-[9px] font-medium text-white/90 px-1.5',
+          )}
+        >
+          {row.title}
+        </span>
+      )}
+      {row.crossesRight && (
+        <span className="text-white/80 text-[9px] pr-1 ml-auto leading-none shrink-0">▸</span>
+      )}
     </div>
+  );
+}
+
+// ── MilestoneShape ────────────────────────────────────────────────────
+
+function MilestoneShape({
+  row, cfg, daysInMonth, dayW, height,
+}: {
+  row: RowDef;
+  cfg: (typeof CAT)[Category];
+  daysInMonth: number;
+  dayW: number;
+  height: number;
+}) {
+  const isParent = row.depth === 0;
+  const cx = (row.startDay! - 0.5) * dayW;
+  const size = isParent ? 14 : 9;
+
+  return (
+    <div
+      className={cn(
+        'absolute z-10 rotate-45 rounded-[3px]',
+        isParent ? cfg.milestoneParent : cfg.milestoneChild,
+        row.status === 'completed' && 'opacity-40',
+      )}
+      style={{
+        width: size,
+        height: size,
+        left: cx - size / 2,
+        top: height / 2 - size / 2,
+      }}
+      title={row.title}
+    />
   );
 }

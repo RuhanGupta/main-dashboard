@@ -17,7 +17,7 @@ export function AssignmentDetail({ id }: { id: string }) {
   const [assignment, setAssignment] = useState<IAssignment | null>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [newSubtask, setNewSubtask] = useState({ title: '', dueDate: '', priority: 'medium' as const });
+  const [newSubtask, setNewSubtask] = useState({ title: '', startDate: '', dueDate: '', priority: 'medium' as const });
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
@@ -46,7 +46,7 @@ export function AssignmentDetail({ id }: { id: string }) {
     if (!newSubtask.title.trim()) return;
     const subtasks = [...(assignment?.subtasks ?? []), { ...newSubtask, status: 'not_started' as const, completed: false }];
     await updateAssignment({ subtasks });
-    setNewSubtask({ title: '', dueDate: '', priority: 'medium' });
+    setNewSubtask({ title: '', startDate: '', dueDate: '', priority: 'medium' });
     setShowSubtaskForm(false);
   };
 
@@ -104,6 +104,7 @@ export function AssignmentDetail({ id }: { id: string }) {
             <Badge className="text-sm font-medium text-academic-deep bg-academic-soft border-academic-line">{assignment.course}</Badge>
             {assignment.priority && <Badge className={cn(priorityColor(assignment.priority))}>{assignment.priority}</Badge>}
             {assignment.status && <Badge className={cn(statusColor(assignment.status))}>{assignment.status.replace('_', ' ')}</Badge>}
+            {assignment.startDate && <span className="text-sm text-muted-foreground">Start {formatDate(assignment.startDate)}</span>}
             {assignment.dueDate && <span className="text-sm text-muted-foreground">Due {formatDate(assignment.dueDate)}</span>}
           </div>
         </div>
@@ -161,18 +162,21 @@ export function AssignmentDetail({ id }: { id: string }) {
                     onChange={e => setNewSubtask(s => ({ ...s, title: e.target.value }))}
                   />
                   <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      type="date"
-                      value={newSubtask.dueDate}
-                      onChange={e => setNewSubtask(s => ({ ...s, dueDate: e.target.value }))}
-                    />
-                    <Select value={newSubtask.priority} onChange={e => setNewSubtask(s => ({ ...s, priority: e.target.value as any }))}>
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </Select>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Start Date</label>
+                      <Input type="date" value={newSubtask.startDate} onChange={e => setNewSubtask(s => ({ ...s, startDate: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Due Date</label>
+                      <Input type="date" value={newSubtask.dueDate} onChange={e => setNewSubtask(s => ({ ...s, dueDate: e.target.value }))} />
+                    </div>
                   </div>
+                  <Select value={newSubtask.priority} onChange={e => setNewSubtask(s => ({ ...s, priority: e.target.value as any }))}>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </Select>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={addSubtask}>Add Subtask</Button>
                     <Button size="sm" variant="ghost" onClick={() => setShowSubtaskForm(false)}>Cancel</Button>
