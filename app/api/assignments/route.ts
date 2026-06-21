@@ -32,7 +32,7 @@ export async function GET() {
   if (authResult.response) return emptyListResponse();
 
   await connectToDatabase();
-  const assignments = await Assignment.find({ userId: authResult.user.id }).sort({ dueDate: 1 });
+  const assignments = await Assignment.find({ userId: authResult.user.id }).sort({ dueDate: 1 }).lean();
   return NextResponse.json(assignments);
 }
 
@@ -46,10 +46,9 @@ export async function POST(req: NextRequest) {
   body.startDate = normalizeDateInput(body.startDate);
   body.dueDate = normalizeDateInput(body.dueDate);
 
-  const assignment = await Assignment.create({
-    ...body,
-    userId: authResult.user.id,
-  });
+  const doc = new Assignment();
+  doc.set({ ...body, userId: authResult.user.id }, { strict: false });
+  const assignment = await doc.save();
 
   // Google Tasks sync is best-effort — never delete the DB record if it fails
   if (authResult.user.accessToken && assignment.dueDate) {
@@ -70,6 +69,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const saved = await Assignment.findOne({ _id: assignment._id, userId: authResult.user.id });
+  const saved = await Assignment.findOne({ _id: assignment._id, userId: authResult.user.id }).lean();
   return NextResponse.json(saved, { status: 201 });
 }

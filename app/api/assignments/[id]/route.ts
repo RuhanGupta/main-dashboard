@@ -77,7 +77,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   await connectToDatabase();
   const { id } = await params;
-  const assignment = await Assignment.findOne({ _id: id, userId: authResult.user.id });
+  const assignment = await Assignment.findOne({ _id: id, userId: authResult.user.id }).lean();
   if (!assignment) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(assignment);
 }
@@ -165,8 +165,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const updated = await Assignment.findOneAndUpdate(
     { _id: id, userId: authResult.user.id },
     body,
-    { new: true }
-  );
+    { new: true, strict: false }
+  ).lean();
   return NextResponse.json(updated);
 }
 

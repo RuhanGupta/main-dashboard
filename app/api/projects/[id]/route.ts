@@ -99,7 +99,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   await connectToDatabase();
   const { id } = await params;
-  const project = await Project.findOne({ _id: id, userId: authResult.user.id });
+  const project = await Project.findOne({ _id: id, userId: authResult.user.id }).lean();
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(project);
 }
@@ -229,8 +229,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const updated = await Project.findOneAndUpdate(
     { _id: id, userId: authResult.user.id },
     body,
-    { new: true }
-  );
+    { new: true, strict: false }
+  ).lean();
   return NextResponse.json(updated);
 }
 

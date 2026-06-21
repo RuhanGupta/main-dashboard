@@ -32,7 +32,7 @@ export async function GET() {
   if (authResult.response) return emptyListResponse();
 
   await connectToDatabase();
-  const projects = await Project.find({ userId: authResult.user.id }).sort({ dueDate: 1 });
+  const projects = await Project.find({ userId: authResult.user.id }).sort({ dueDate: 1 }).lean();
   return NextResponse.json(projects);
 }
 
@@ -46,10 +46,9 @@ export async function POST(req: NextRequest) {
   body.startDate = normalizeDateInput(body.startDate);
   body.dueDate = normalizeDateInput(body.dueDate);
 
-  const project = await Project.create({
-    ...body,
-    userId: authResult.user.id,
-  });
+  const doc = new Project();
+  doc.set({ ...body, userId: authResult.user.id }, { strict: false });
+  const project = await doc.save();
 
   if (authResult.user.accessToken && project.dueDate) {
     try {
@@ -69,6 +68,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const saved = await Project.findOne({ _id: project._id, userId: authResult.user.id });
+  const saved = await Project.findOne({ _id: project._id, userId: authResult.user.id }).lean();
   return NextResponse.json(saved, { status: 201 });
 }
