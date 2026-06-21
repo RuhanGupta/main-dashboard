@@ -43,6 +43,7 @@ export interface IAssignment {
   userId?: string;
   title: string;
   course: string;
+  startDate?: Date | string;
   dueDate?: Date | string;
   priority: Priority;
   status: Status;
@@ -60,6 +61,7 @@ export interface IProject {
   userId?: string;
   title: string;
   description?: string;
+  startDate?: Date | string;
   dueDate?: Date | string;
   priority: Priority;
   status: Status;

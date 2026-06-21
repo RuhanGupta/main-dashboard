@@ -108,12 +108,18 @@ export function BodyGoals() {
           <Input placeholder="Goal title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
           <Textarea placeholder="Notes..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
           <div className="grid grid-cols-2 gap-2">
-            <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
-            <Select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-              <option value="not_started">Not Started</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-            </Select>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Target Date</label>
+              <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
+              <Select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                <option value="not_started">Not Started</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </Select>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button className="flex-1" onClick={createGoal}>Create Goal</Button>
@@ -143,7 +149,7 @@ function GoalCard({ goal, onAddSubtask, onToggleSubtask, onDelete }: {
             <h3 className="font-serif font-semibold text-foreground">{goal.title}</h3>
             <div className="flex items-center gap-2 mt-1">
               <Badge className={cn('text-xs', statusColor(goal.status))}>{goal.status.replace('_', ' ')}</Badge>
-              {goal.dueDate && <span className="text-xs text-muted-foreground">Due {formatDateShort(goal.dueDate)}</span>}
+              {goal.dueDate && <span className="text-xs text-muted-foreground">Target {formatDateShort(goal.dueDate)}</span>}
             </div>
           </div>
           <button onClick={() => onDelete(goal._id!)} className="text-border-strong hover:text-danger transition-colors">

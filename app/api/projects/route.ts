@@ -14,6 +14,7 @@ type ProjectBody = {
   _id?: unknown;
   title: string;
   description?: string;
+  startDate?: Date | string | null;
   dueDate?: Date | string | null;
   priority?: string;
   status?: string;
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
   await connectToDatabase();
   const body = (await req.json()) as ProjectBody;
   removeClientManagedFields(body);
+  body.startDate = normalizeDateInput(body.startDate);
   body.dueDate = normalizeDateInput(body.dueDate);
 
   const project = await Project.create({

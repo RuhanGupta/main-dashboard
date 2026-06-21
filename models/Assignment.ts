@@ -18,6 +18,7 @@ const AssignmentSchema = new Schema({
   userId: { type: String, required: true, index: true },
   title: { type: String, required: true },
   course: { type: String, required: true },
+  startDate: Date,
   dueDate: Date,
   priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
   status: { type: String, enum: ['not_started', 'in_progress', 'completed', 'cancelled'], default: 'not_started' },

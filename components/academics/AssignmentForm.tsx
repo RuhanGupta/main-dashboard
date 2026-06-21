@@ -16,6 +16,7 @@ export function AssignmentForm({ assignment, onSave, onCancel }: Props) {
   const [form, setForm] = useState({
     title: assignment?.title ?? '',
     course: assignment?.course ?? '',
+    startDate: assignment?.startDate ? new Date(assignment.startDate).toISOString().split('T')[0] : '',
     dueDate: assignment?.dueDate ? new Date(assignment.dueDate).toISOString().split('T')[0] : '',
     priority: assignment?.priority ?? 'medium',
     status: assignment?.status ?? 'not_started',
@@ -59,6 +60,14 @@ export function AssignmentForm({ assignment, onSave, onCancel }: Props) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Start Date</label>
+          <Input
+            type="date"
+            value={form.startDate}
+            onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
+          />
+        </div>
+        <div>
           <label className="block text-sm font-medium text-foreground mb-1.5">Due Date</label>
           <Input
             type="date"
@@ -66,6 +75,8 @@ export function AssignmentForm({ assignment, onSave, onCancel }: Props) {
             onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
           />
         </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-foreground mb-1.5">Priority</label>
           <Select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value as any }))}>
@@ -75,15 +86,15 @@ export function AssignmentForm({ assignment, onSave, onCancel }: Props) {
             <option value="urgent">Urgent</option>
           </Select>
         </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-1.5">Status</label>
-        <Select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))}>
-          <option value="not_started">Not Started</option>
-          <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-        </Select>
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">Status</label>
+          <Select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))}>
+            <option value="not_started">Not Started</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </Select>
+        </div>
       </div>
       <div>
         <label className="block text-sm font-medium text-foreground mb-1.5">Notes</label>

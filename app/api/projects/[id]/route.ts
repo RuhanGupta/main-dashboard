@@ -42,6 +42,7 @@ type ProjectBody = {
   _id?: unknown;
   title?: string;
   description?: string;
+  startDate?: DateInput;
   dueDate?: DateInput;
   priority?: string;
   status?: string;
@@ -82,6 +83,7 @@ function normalizeTask(task: ProjectTaskBody): ProjectTaskBody {
 function normalizeProjectBody(body: ProjectBody): ProjectBody {
   return {
     ...body,
+    startDate: normalizeDateInput(body.startDate),
     dueDate: normalizeDateInput(body.dueDate),
     tasks: Array.isArray(body.tasks) ? body.tasks.map(normalizeTask) : body.tasks,
   };

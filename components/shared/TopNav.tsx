@@ -17,6 +17,7 @@ const navItems = [
   { href: '/extracurriculars', label: 'Extracurriculars' },
   { href: '/body', label: 'Body' },
   { href: '/reflection', label: 'Reflection' },
+  { href: '/summer-timeline', label: 'Timeline' },
 ];
 
 export function TopNav() {

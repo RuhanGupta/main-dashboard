@@ -30,6 +30,7 @@ type AssignmentBody = {
   _id?: unknown;
   title?: string;
   course?: string;
+  startDate?: DateInput;
   dueDate?: DateInput;
   priority?: string;
   status?: string;
@@ -62,6 +63,7 @@ function normalizeSubtask(subtask: AssignmentSubtaskBody): AssignmentSubtaskBody
 function normalizeAssignmentBody(body: AssignmentBody): AssignmentBody {
   return {
     ...body,
+    startDate: normalizeDateInput(body.startDate),
     dueDate: normalizeDateInput(body.dueDate),
     subtasks: Array.isArray(body.subtasks) ? body.subtasks.map(normalizeSubtask) : body.subtasks,
   };
