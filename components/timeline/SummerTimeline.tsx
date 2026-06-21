@@ -167,9 +167,9 @@ export function SummerTimeline() {
       );
       if (!parent) continue;
       out.push(parent);
-      for (const s of (a.subtasks ?? []) as (ISubtask & { startDate?: string })[]) {
+      for (const [si, s] of ((a.subtasks ?? []) as (ISubtask & { startDate?: string })[]).entries()) {
         const child = buildRow(
-          `${a._id}-${s._id}`, s.title, undefined,
+          `${a._id}-sub-${s._id ?? si}`, s.title, undefined,
           s.startDate, s.dueDate, s.status ?? 'not_started', 'academic', 1,
           currentMonth, daysInMonth,
         );
@@ -185,9 +185,9 @@ export function SummerTimeline() {
       );
       if (!parent) continue;
       out.push(parent);
-      for (const t of (p.tasks ?? []) as any[]) {
+      for (const [ti, t] of ((p.tasks ?? []) as any[]).entries()) {
         const child = buildRow(
-          `${p._id}-${t._id}`, t.title, undefined,
+          `${p._id}-task-${t._id ?? ti}`, t.title, undefined,
           t.startDate, t.dueDate, t.status ?? 'not_started', 'project', 1,
           currentMonth, daysInMonth,
         );
