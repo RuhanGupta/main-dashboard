@@ -3,6 +3,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Assignment } from '@/models/Assignment';
 import { Project } from '@/models/Project';
 import { Workout } from '@/models/Workout';
+import { AcademicRecurringTask } from '@/models/AcademicRecurringTask';
 import { addDays, subDays, startOfDay, endOfDay } from 'date-fns';
 import { getCurrentUser } from '@/lib/auth';
 
@@ -25,15 +26,19 @@ export async function GET() {
       assignments: [],
       projectTasks: [],
       workouts: [],
+      academicRecurringTasks: [],
       windowStart: start,
       windowEnd: end,
     });
   }
 
-  const [assignments, projects, workouts] = await Promise.all([
+  const [assignments, projects, workouts, academicRecurringTasks] = await Promise.all([
     Assignment.find({ userId: user.id, dueDate: { $gte: start, $lte: end } }).sort({ dueDate: 1 }),
     Project.find({ userId: user.id, 'tasks.dueDate': { $gte: start, $lte: end } }).sort({ dueDate: 1 }),
     Workout.find({ userId: user.id, date: { $gte: start, $lte: end } }).sort({ date: 1 }),
+    // Recurring tasks are weekday-based, not date-bound — return all active ones
+    // so the week view can place them on any navigated week.
+    AcademicRecurringTask.find({ userId: user.id, active: true }).sort({ dayOfWeek: 1, startTime: 1 }),
   ]);
 
   const projectTasksInWindow = projects.flatMap(p =>
@@ -46,6 +51,7 @@ export async function GET() {
     assignments,
     projectTasks: projectTasksInWindow,
     workouts,
+    academicRecurringTasks,
     windowStart: start,
     windowEnd: end,
   });

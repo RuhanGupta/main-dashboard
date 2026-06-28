@@ -1,11 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Plus, BookOpen, Filter, Share2, Copy, Check, RefreshCw } from 'lucide-react';
+import { Plus, BookOpen, Filter, Share2, Copy, Check, RefreshCw, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { IAssignment } from '@/types';
 import { AssignmentCard } from './AssignmentCard';
 import { AssignmentForm } from './AssignmentForm';
+import { AcademicRecurringPlanner } from './AcademicRecurringPlanner';
 import { Modal } from '@/components/ui/modal';
 
 export function AcademicsContent() {
@@ -113,6 +114,20 @@ export function AcademicsContent() {
           ))}
         </div>
       </div>
+
+      {/* Weekly recurring planner */}
+      <Card className="p-5 mb-8">
+        <div className="flex items-center gap-2.5 mb-4">
+          <span className="w-8 h-8 rounded-xl bg-academic-soft border border-academic-line flex items-center justify-center">
+            <CalendarClock className="w-4 h-4 text-academic-deep" />
+          </span>
+          <div>
+            <h2 className="font-serif font-semibold text-foreground text-base">Weekly Recurring Planner</h2>
+            <p className="text-xs text-muted-foreground">Repeating study sessions, practice, and reflection</p>
+          </div>
+        </div>
+        <AcademicRecurringPlanner />
+      </Card>
 
       {/* Assignments by course */}
       {loading ? (

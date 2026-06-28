@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 
@@ -13,6 +14,10 @@ interface ModalProps {
 
 export function Modal({ open, onClose, title, children, className }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Only render the portal on the client to avoid SSR/hydration issues.
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -22,9 +27,13 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  // Render into document.body so the fixed overlay is positioned relative to the
+  // viewport — not a transformed ancestor (e.g. `.stagger` children carry a
+  // lingering transform from their entrance animation, which would otherwise
+  // become the containing block and clip/misplace the modal).
+  return createPortal(
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-sidebar/50 backdrop-blur-sm p-4 animate-fade-in"
@@ -49,6 +58,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

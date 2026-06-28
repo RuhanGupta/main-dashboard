@@ -98,6 +98,30 @@ export interface IWorkout {
   completed: boolean;
 }
 
+export type AcademicTaskStatus = 'not_started' | 'in_progress' | 'completed';
+
+export interface ICompletionRecord {
+  date: string; // YYYY-MM-DD
+  status: AcademicTaskStatus;
+  completedAt?: Date | string;
+  notes?: string;
+}
+
+export interface IAcademicRecurringTask {
+  _id?: string;
+  userId?: string;
+  title: string;
+  subject: string;
+  dayOfWeek: number; // 0-6 (Sun-Sat)
+  startTime?: string; // HH:mm
+  endTime?: string; // HH:mm
+  notes?: string;
+  active: boolean;
+  completionLog: ICompletionRecord[];
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}
+
 export interface IHabit {
   _id?: string;
   userId?: string;
