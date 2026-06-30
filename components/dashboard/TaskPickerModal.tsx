@@ -59,18 +59,21 @@ export function TaskPickerModal({ open, onClose, existingItems, onAdd }: Props) 
   const allItems: PickerItem[] = useMemo(() => {
     const items: PickerItem[] = [];
     assignments.forEach((a: any) => {
-      (a.subtasks ?? []).forEach((s: any) => {
-        items.push({ sourceType: 'assignment_subtask', sourceId: String(s._id), parentId: String(a._id), title: s.title, parentTitle: a.title, alreadyDone: s.completed });
+      (a.subtasks ?? []).forEach((s: any, si: number) => {
+        const sid = s._id ? String(s._id) : `assignment_subtask__${String(a._id)}__${si}`;
+        items.push({ sourceType: 'assignment_subtask', sourceId: sid, parentId: String(a._id), title: s.title, parentTitle: a.title, alreadyDone: s.completed });
       });
     });
     projects.forEach((p: any) => {
-      (p.tasks ?? []).forEach((t: any) => {
-        items.push({ sourceType: 'project_task', sourceId: String(t._id), parentId: String(p._id), title: t.title, parentTitle: p.title, alreadyDone: t.status === 'completed' });
+      (p.tasks ?? []).forEach((t: any, ti: number) => {
+        const tid = t._id ? String(t._id) : `project_task__${String(p._id)}__${ti}`;
+        items.push({ sourceType: 'project_task', sourceId: tid, parentId: String(p._id), title: t.title, parentTitle: p.title, alreadyDone: t.status === 'completed' });
       });
     });
     bodyGoals.forEach((g: any) => {
-      (g.subtasks ?? []).forEach((s: any) => {
-        items.push({ sourceType: 'body_goal_subtask', sourceId: String(s._id), parentId: String(g._id), title: s.title, parentTitle: g.title, alreadyDone: s.completed });
+      (g.subtasks ?? []).forEach((s: any, si: number) => {
+        const sid = s._id ? String(s._id) : `body_goal_subtask__${String(g._id)}__${si}`;
+        items.push({ sourceType: 'body_goal_subtask', sourceId: sid, parentId: String(g._id), title: s.title, parentTitle: g.title, alreadyDone: s.completed });
       });
     });
     return items;
@@ -179,13 +182,13 @@ export function TaskPickerModal({ open, onClose, existingItems, onAdd }: Props) 
             // Grouped view
             <>
               {renderSection('Assignments', <BookOpen className="w-3.5 h-3.5 text-academic" />, assignments,
-                (a) => (a.subtasks ?? []).map((s: any) => ({ sourceType: 'assignment_subtask' as const, sourceId: String(s._id), parentId: String(a._id), title: s.title, parentTitle: a.title, alreadyDone: s.completed }))
+                (a) => (a.subtasks ?? []).map((s: any, si: number) => ({ sourceType: 'assignment_subtask' as const, sourceId: s._id ? String(s._id) : `assignment_subtask__${String(a._id)}__${si}`, parentId: String(a._id), title: s.title, parentTitle: a.title, alreadyDone: s.completed }))
               )}
               {renderSection('Projects', <Star className="w-3.5 h-3.5 text-extracurricular" />, projects,
-                (p) => (p.tasks ?? []).map((t: any) => ({ sourceType: 'project_task' as const, sourceId: String(t._id), parentId: String(p._id), title: t.title, parentTitle: p.title, alreadyDone: t.status === 'completed' }))
+                (p) => (p.tasks ?? []).map((t: any, ti: number) => ({ sourceType: 'project_task' as const, sourceId: t._id ? String(t._id) : `project_task__${String(p._id)}__${ti}`, parentId: String(p._id), title: t.title, parentTitle: p.title, alreadyDone: t.status === 'completed' }))
               )}
               {renderSection('Body Goals', <Dumbbell className="w-3.5 h-3.5 text-body" />, bodyGoals,
-                (g) => (g.subtasks ?? []).map((s: any) => ({ sourceType: 'body_goal_subtask' as const, sourceId: String(s._id), parentId: String(g._id), title: s.title, parentTitle: g.title, alreadyDone: s.completed }))
+                (g) => (g.subtasks ?? []).map((s: any, si: number) => ({ sourceType: 'body_goal_subtask' as const, sourceId: s._id ? String(s._id) : `body_goal_subtask__${String(g._id)}__${si}`, parentId: String(g._id), title: s.title, parentTitle: g.title, alreadyDone: s.completed }))
               )}
               {!loading && assignments.length === 0 && projects.length === 0 && bodyGoals.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-6">No tasks found. Add assignments or projects first.</p>
