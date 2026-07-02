@@ -6,7 +6,7 @@ import { Project } from '@/models/Project';
 import { BodyGoal } from '@/models/BodyGoal';
 import { requireCurrentUser } from '@/lib/api-helpers';
 
-// PATCH — toggle completed; propagates to the source document
+// PATCH — update completed and/or startDate/dueDate; propagates to the source document
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ itemId: string }> }
@@ -16,12 +16,17 @@ export async function PATCH(
 
   await connectToDatabase();
   const { itemId } = await params;
-  const { completed } = (await req.json()) as { completed: boolean };
+  const body = (await req.json()) as { completed?: boolean; startDate?: string | null; dueDate?: string | null };
 
-  // Update the focus item itself
+  // Build update for the focus item itself
+  const focusSet: Record<string, unknown> = {};
+  if (body.completed !== undefined) focusSet['items.$.completed'] = body.completed;
+  if ('startDate' in body) focusSet['items.$.startDate'] = body.startDate ? new Date(body.startDate) : null;
+  if ('dueDate' in body) focusSet['items.$.dueDate'] = body.dueDate ? new Date(body.dueDate) : null;
+
   const doc = await DailyFocus.findOneAndUpdate(
     { userId: authResult.user.id, 'items._id': itemId },
-    { $set: { 'items.$.completed': completed } },
+    { $set: focusSet },
     { new: true }
   ).lean() as any;
 
@@ -30,24 +35,43 @@ export async function PATCH(
   const item = (doc.items as any[]).find((i: any) => i._id.toString() === itemId);
   if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
 
-  // Propagate completion to the source — use MongoDB $set directly to avoid
-  // triggering the full PUT pipeline (Google Tasks sync not needed here)
+  // Propagate to source document
   try {
     if (item.sourceType === 'assignment_subtask') {
-      await Assignment.updateOne(
-        { _id: item.parentId, userId: authResult.user.id, 'subtasks._id': item.sourceId },
-        { $set: { 'subtasks.$.completed': completed, 'subtasks.$.status': completed ? 'completed' : 'not_started' } }
-      );
+      const sourceSet: Record<string, unknown> = {};
+      if (body.completed !== undefined) {
+        sourceSet['subtasks.$.completed'] = body.completed;
+        sourceSet['subtasks.$.status'] = body.completed ? 'completed' : 'not_started';
+      }
+      if ('startDate' in body) sourceSet['subtasks.$.startDate'] = body.startDate ? new Date(body.startDate) : null;
+      if ('dueDate' in body) sourceSet['subtasks.$.dueDate'] = body.dueDate ? new Date(body.dueDate) : null;
+      if (Object.keys(sourceSet).length) {
+        await Assignment.updateOne(
+          { _id: item.parentId, userId: authResult.user.id, 'subtasks._id': item.sourceId },
+          { $set: sourceSet }
+        );
+      }
     } else if (item.sourceType === 'project_task') {
-      await Project.updateOne(
-        { _id: item.parentId, userId: authResult.user.id, 'tasks._id': item.sourceId },
-        { $set: { 'tasks.$.status': completed ? 'completed' : 'not_started' } }
-      );
+      const sourceSet: Record<string, unknown> = {};
+      if (body.completed !== undefined) sourceSet['tasks.$.status'] = body.completed ? 'completed' : 'not_started';
+      if ('startDate' in body) sourceSet['tasks.$.startDate'] = body.startDate ? new Date(body.startDate) : null;
+      if ('dueDate' in body) sourceSet['tasks.$.dueDate'] = body.dueDate ? new Date(body.dueDate) : null;
+      if (Object.keys(sourceSet).length) {
+        await Project.updateOne(
+          { _id: item.parentId, userId: authResult.user.id, 'tasks._id': item.sourceId },
+          { $set: sourceSet }
+        );
+      }
     } else if (item.sourceType === 'body_goal_subtask') {
-      await BodyGoal.updateOne(
-        { _id: item.parentId, userId: authResult.user.id, 'subtasks._id': item.sourceId },
-        { $set: { 'subtasks.$.completed': completed } }
-      );
+      const sourceSet: Record<string, unknown> = {};
+      if (body.completed !== undefined) sourceSet['subtasks.$.completed'] = body.completed;
+      if ('dueDate' in body) sourceSet['subtasks.$.dueDate'] = body.dueDate ? new Date(body.dueDate) : null;
+      if (Object.keys(sourceSet).length) {
+        await BodyGoal.updateOne(
+          { _id: item.parentId, userId: authResult.user.id, 'subtasks._id': item.sourceId },
+          { $set: sourceSet }
+        );
+      }
     }
   } catch {
     // Source update is best-effort — don't fail the whole request

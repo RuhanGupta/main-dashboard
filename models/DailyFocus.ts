@@ -10,6 +10,8 @@ const DailyFocusItemSchema = new Schema({
   parentId:    { type: String, required: true }, // _id of the assignment / project / body goal
   title:       { type: String, required: true }, // cached for display
   parentTitle: { type: String, default: '' },    // cached for context line
+  startDate:   { type: Date,   default: null },
+  dueDate:     { type: Date,   default: null },
   completed:   { type: Boolean, default: false },
   addedAt:     { type: Date,    default: Date.now },
 });

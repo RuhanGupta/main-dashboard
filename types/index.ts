@@ -156,6 +156,8 @@ export interface IDailyFocusItem {
   parentId: string;
   title: string;
   parentTitle: string;
+  startDate?: string | null;
+  dueDate?: string | null;
   completed: boolean;
   addedAt: string;
 }
