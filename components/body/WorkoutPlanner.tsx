@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { format, addDays, subDays, startOfDay, isSameDay } from 'date-fns';
-import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Dumbbell, CheckCircle2, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Dumbbell, CheckCircle2, X, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +17,7 @@ export function WorkoutPlanner() {
   const [showWorkoutForm, setShowWorkoutForm] = useState(false);
   const [showExerciseDetail, setShowExerciseDetail] = useState<{ workout: IWorkout; exerciseIdx: number } | null>(null);
   const [newWorkoutTitle, setNewWorkoutTitle] = useState('');
+  const [repeatFrequency, setRepeatFrequency] = useState<'none' | 'daily' | 'weekly'>('none');
 
   const today = new Date();
   const dayOfWeek = addDays(today, weekOffset * 7).getDay();
@@ -41,16 +42,31 @@ export function WorkoutPlanner() {
     await fetch('/api/workouts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newWorkoutTitle, date: day.toISOString(), exercises: [], completed: false }),
+      body: JSON.stringify({
+        title: newWorkoutTitle,
+        date: day.toISOString(),
+        exercises: [],
+        completed: false,
+        repeatFrequency: repeatFrequency === 'none' ? undefined : repeatFrequency,
+      }),
     });
     setNewWorkoutTitle('');
+    setRepeatFrequency('none');
     setShowWorkoutForm(false);
     setSelectedDay(null);
     fetchWorkouts();
   };
 
-  const deleteWorkout = async (id: string) => {
-    await fetch(`/api/workouts/${id}`, { method: 'DELETE' });
+  const deleteWorkout = async (workout: IWorkout) => {
+    if (workout.isRecurring) {
+      const unit = workout.recurrenceFrequency === 'daily' ? 'day\'s' : 'week\'s';
+      const deleteAllFuture = window.confirm(
+        `This is a repeating workout. Click OK to delete this and all future occurrences, or Cancel to delete just this ${unit}.`
+      );
+      await fetch(`/api/workouts/${workout._id}${deleteAllFuture ? '?scope=future' : ''}`, { method: 'DELETE' });
+    } else {
+      await fetch(`/api/workouts/${workout._id}`, { method: 'DELETE' });
+    }
     fetchWorkouts();
   };
 
@@ -144,9 +160,12 @@ export function WorkoutPlanner() {
                     onClick={() => setSelectedWorkout(w)}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium truncate flex-1">{w.title}</span>
+                      <span className="font-medium truncate flex-1 flex items-center gap-1">
+                        {w.isRecurring && <Repeat className="w-3 h-3 flex-shrink-0 opacity-60" />}
+                        {w.title}
+                      </span>
                       <button
-                        onClick={e => { e.stopPropagation(); deleteWorkout(w._id!); }}
+                        onClick={e => { e.stopPropagation(); deleteWorkout(w); }}
                         className="opacity-0 group-hover:opacity-100 text-danger/70 hover:text-danger ml-1 transition-opacity"
                       >
                         <X className="w-3 h-3" />
@@ -172,7 +191,7 @@ export function WorkoutPlanner() {
       {/* Add workout modal */}
       <Modal
         open={showWorkoutForm && selectedDay !== null}
-        onClose={() => { setShowWorkoutForm(false); setSelectedDay(null); }}
+        onClose={() => { setShowWorkoutForm(false); setSelectedDay(null); setRepeatFrequency('none'); }}
         title={`Add Workout – ${selectedDay ? format(selectedDay, 'EEE, MMM d') : ''}`}
       >
         <div className="space-y-3">
@@ -183,9 +202,35 @@ export function WorkoutPlanner() {
             onKeyDown={e => e.key === 'Enter' && selectedDay && createWorkout(selectedDay)}
             autoFocus
           />
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+              <Repeat className="w-3.5 h-3.5" /> Repeat
+            </label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {([
+                { value: 'none', label: "Doesn't repeat" },
+                { value: 'daily', label: 'Every day' },
+                { value: 'weekly', label: 'Every week' },
+              ] as const).map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setRepeatFrequency(opt.value)}
+                  className={cn(
+                    'text-xs font-medium px-2 py-1.5 rounded-lg border transition-colors',
+                    repeatFrequency === opt.value
+                      ? 'bg-body-soft text-body-deep border-body-line'
+                      : 'bg-muted/40 text-muted-foreground border-border hover:bg-muted/70'
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex gap-2">
             <Button className="flex-1" onClick={() => selectedDay && createWorkout(selectedDay)}>Create Workout</Button>
-            <Button variant="outline" onClick={() => { setShowWorkoutForm(false); setSelectedDay(null); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setShowWorkoutForm(false); setSelectedDay(null); setRepeatFrequency('none'); }}>Cancel</Button>
           </div>
         </div>
       </Modal>

@@ -96,6 +96,9 @@ export interface IWorkout {
   exercises: IExercise[];
   notes?: string;
   completed: boolean;
+  isRecurring?: boolean;
+  recurringGroupId?: string;
+  recurrenceFrequency?: 'daily' | 'weekly';
 }
 
 export type AcademicTaskStatus = 'not_started' | 'in_progress' | 'completed';

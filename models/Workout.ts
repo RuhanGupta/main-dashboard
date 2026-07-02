@@ -25,6 +25,9 @@ const WorkoutSchema = new Schema({
   exercises: [ExerciseSchema],
   notes: String,
   completed: { type: Boolean, default: false },
+  isRecurring: { type: Boolean, default: false },
+  recurringGroupId: { type: String, index: true },
+  recurrenceFrequency: { type: String, enum: ['daily', 'weekly'] },
 }, { timestamps: true });
 
 export const Workout = models.Workout ?? model('Workout', WorkoutSchema);
