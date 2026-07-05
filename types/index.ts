@@ -150,7 +150,7 @@ export interface IReflection {
   createdAt?: Date | string;
 }
 
-export type DailyFocusSourceType = 'assignment_subtask' | 'project_task' | 'body_goal_subtask';
+export type DailyFocusSourceType = 'assignment_subtask' | 'project_task' | 'body_goal_subtask' | 'quick_task';
 
 export interface IDailyFocusItem {
   _id: string;

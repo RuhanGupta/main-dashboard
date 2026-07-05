@@ -21,18 +21,30 @@ export async function POST(req: NextRequest) {
   const { sourceType, sourceId, parentId, title, parentTitle } =
     (await req.json()) as {
       sourceType: DailyFocusSourceType;
-      sourceId: string;
-      parentId: string;
+      sourceId?: string;
+      parentId?: string;
       title: string;
-      parentTitle: string;
+      parentTitle?: string;
     };
+
+  if (!title?.trim()) {
+    return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+  }
 
   // Upsert the doc and push the new item (prevent duplicates by sourceId)
   const doc = await DailyFocus.findOneAndUpdate(
     { userId: authResult.user.id },
     {
       $push: {
-        items: { sourceType, sourceId, parentId, title, parentTitle, completed: false, addedAt: new Date() },
+        items: {
+          sourceType,
+          sourceId: sourceId || new Date().getTime().toString(),
+          parentId: parentId || '',
+          title: title.trim(),
+          parentTitle: parentTitle || '',
+          completed: false,
+          addedAt: new Date(),
+        },
       },
     },
     { new: true, upsert: true }

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Plus, CheckCircle2, Circle, X, Sparkles, BookOpen, Star, Dumbbell, Edit2, Check } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, X, Sparkles, BookOpen, Star, Dumbbell, Edit2, Check, ListPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { IDailyFocusItem } from '@/types';
 import { TaskPickerModal } from './TaskPickerModal';
@@ -9,6 +9,7 @@ const SOURCE_ICON: Record<string, React.ReactNode> = {
   assignment_subtask: <BookOpen className="w-3 h-3 text-academic" />,
   project_task:       <Star className="w-3 h-3 text-extracurricular" />,
   body_goal_subtask:  <Dumbbell className="w-3 h-3 text-body" />,
+  quick_task:         <ListPlus className="w-3 h-3 text-sidebar-muted" />,
 };
 
 function sortItems(items: IDailyFocusItem[]): IDailyFocusItem[] {
@@ -40,6 +41,8 @@ export function DailyFocusPanel() {
   const [showPicker, setShowPicker] = useState(false);
   const [editingId, setEditingId]   = useState<string | null>(null);
   const [editDates, setEditDates]   = useState({ startDate: '', dueDate: '' });
+  const [quickTitle, setQuickTitle] = useState('');
+  const [adding, setAdding]         = useState(false);
 
   const fetchItems = async () => {
     const res = await fetch('/api/daily-focus');
@@ -72,6 +75,24 @@ export function DailyFocusPanel() {
     });
     const created = await res.json();
     setItems(prev => sortItems([...prev, { ...created, completed: false }]));
+  };
+
+  const addQuickTask = async () => {
+    const title = quickTitle.trim();
+    if (!title || adding) return;
+    setAdding(true);
+    try {
+      await addItem({
+        sourceType: 'quick_task',
+        sourceId: '',
+        parentId: '',
+        title,
+        parentTitle: '',
+      });
+      setQuickTitle('');
+    } finally {
+      setAdding(false);
+    }
   };
 
   const startEdit = (item: IDailyFocusItem) => {
@@ -136,6 +157,26 @@ export function DailyFocusPanel() {
           >
             <Plus className="w-3.5 h-3.5" />
             Add Tasks
+          </button>
+        </div>
+
+        {/* Quick add */}
+        <div className="relative flex items-center gap-2 mb-4">
+          <input
+            type="text"
+            value={quickTitle}
+            onChange={e => setQuickTitle(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') addQuickTask(); }}
+            placeholder="Quick add a task for today..."
+            className="flex-1 text-sm bg-white/[0.06] border border-white/10 rounded-xl px-3.5 py-2 text-white placeholder:text-sidebar-muted focus:outline-none focus:border-white/25 transition-colors"
+          />
+          <button
+            onClick={addQuickTask}
+            disabled={!quickTitle.trim() || adding}
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-40 disabled:hover:bg-white/10 text-white transition-all duration-200 active:scale-95"
+            title="Add task"
+          >
+            <Plus className="w-4 h-4" />
           </button>
         </div>
 
@@ -229,8 +270,12 @@ export function DailyFocusPanel() {
                       {item.title}
                     </p>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      {SOURCE_ICON[item.sourceType]}
-                      <span className="text-xs text-sidebar-muted truncate">{item.parentTitle}</span>
+                      {item.parentTitle && (
+                        <>
+                          {SOURCE_ICON[item.sourceType]}
+                          <span className="text-xs text-sidebar-muted truncate">{item.parentTitle}</span>
+                        </>
+                      )}
                       {(item.startDate || item.dueDate) && (
                         <span className="text-[10px] text-sidebar-muted/70">
                           {item.startDate && <span>{formatDateDisplay(item.startDate)}</span>}
