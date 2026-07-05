@@ -9,7 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 
 type ProjectTaskRecord = {
   dueDate?: Date | string;
-  toObject(): Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 export async function GET() {
@@ -33,18 +33,18 @@ export async function GET() {
   }
 
   const [assignments, projects, workouts, academicRecurringTasks] = await Promise.all([
-    Assignment.find({ userId: user.id, dueDate: { $gte: start, $lte: end } }).sort({ dueDate: 1 }),
-    Project.find({ userId: user.id, 'tasks.dueDate': { $gte: start, $lte: end } }).sort({ dueDate: 1 }),
-    Workout.find({ userId: user.id, date: { $gte: start, $lte: end } }).sort({ date: 1 }),
+    Assignment.find({ userId: user.id, dueDate: { $gte: start, $lte: end } }).sort({ dueDate: 1 }).lean(),
+    Project.find({ userId: user.id, 'tasks.dueDate': { $gte: start, $lte: end } }).sort({ dueDate: 1 }).lean(),
+    Workout.find({ userId: user.id, date: { $gte: start, $lte: end } }).sort({ date: 1 }).lean(),
     // Recurring tasks are weekday-based, not date-bound — return all active ones
     // so the week view can place them on any navigated week.
-    AcademicRecurringTask.find({ userId: user.id, active: true }).sort({ dayOfWeek: 1, startTime: 1 }),
+    AcademicRecurringTask.find({ userId: user.id, active: true }).sort({ dayOfWeek: 1, startTime: 1 }).lean(),
   ]);
 
   const projectTasksInWindow = projects.flatMap(p =>
     (p.tasks as ProjectTaskRecord[])
       .filter(t => t.dueDate && new Date(t.dueDate) >= start && new Date(t.dueDate) <= end)
-      .map(t => ({ ...t.toObject(), projectId: p._id, projectTitle: p.title }))
+      .map(t => ({ ...t, projectId: p._id, projectTitle: p.title }))
   );
 
   return NextResponse.json({

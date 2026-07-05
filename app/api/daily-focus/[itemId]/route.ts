@@ -5,6 +5,13 @@ import { Assignment } from '@/models/Assignment';
 import { Project } from '@/models/Project';
 import { BodyGoal } from '@/models/BodyGoal';
 import { requireCurrentUser } from '@/lib/api-helpers';
+import type { DailyFocusSourceType } from '@/types';
+
+type DailyFocusItemRecord = {
+  sourceType: DailyFocusSourceType;
+  sourceId: string;
+  parentId: string;
+};
 
 // PATCH — update completed and/or startDate/dueDate; propagates to the source document
 export async function PATCH(
@@ -24,16 +31,21 @@ export async function PATCH(
   if ('startDate' in body) focusSet['items.$.startDate'] = body.startDate ? new Date(body.startDate) : null;
   if ('dueDate' in body) focusSet['items.$.dueDate'] = body.dueDate ? new Date(body.dueDate) : null;
 
-  const doc = await DailyFocus.findOneAndUpdate(
+  const doc = await DailyFocus.findOne(
     { userId: authResult.user.id, 'items._id': itemId },
-    { $set: focusSet },
-    { new: true }
-  ).lean() as any;
-
+    { 'items.$': 1 }
+  ).lean() as { items?: DailyFocusItemRecord[] } | null;
   if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const item = (doc.items as any[]).find((i: any) => i._id.toString() === itemId);
+  const item = doc.items?.[0];
   if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+
+  if (Object.keys(focusSet).length) {
+    await DailyFocus.updateOne(
+      { userId: authResult.user.id, 'items._id': itemId },
+      { $set: focusSet }
+    );
+  }
 
   // Propagate to source document
   try {
@@ -77,7 +89,7 @@ export async function PATCH(
     // Source update is best-effort — don't fail the whole request
   }
 
-  return NextResponse.json({ ok: true, item });
+  return NextResponse.json({ ok: true });
 }
 
 // DELETE — remove item from the focus list (does NOT undo completion in source)

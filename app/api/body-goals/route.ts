@@ -3,7 +3,6 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { BodyGoal } from '@/models/BodyGoal';
 import {
   emptyListResponse,
-  googleSyncErrorResponse,
   normalizeDateInput,
   removeClientManagedFields,
   requireCurrentUser,
@@ -28,7 +27,7 @@ export async function GET() {
   if (authResult.response) return emptyListResponse();
 
   await connectToDatabase();
-  const goals = await BodyGoal.find({ userId: authResult.user.id }).sort({ createdAt: -1 });
+  const goals = await BodyGoal.find({ userId: authResult.user.id }).sort({ createdAt: -1 }).lean();
   return NextResponse.json(goals);
 }
 
@@ -64,6 +63,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const saved = await BodyGoal.findOne({ _id: goal._id, userId: authResult.user.id });
+  const saved = await BodyGoal.findOne({ _id: goal._id, userId: authResult.user.id }).lean();
   return NextResponse.json(saved, { status: 201 });
 }

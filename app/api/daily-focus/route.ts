@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Types } from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
 import { DailyFocus } from '@/models/DailyFocus';
 import { requireCurrentUser } from '@/lib/api-helpers';
-import type { DailyFocusSourceType } from '@/types';
+import type { DailyFocusSourceType, IDailyFocusItem } from '@/types';
 
 export async function GET() {
   const authResult = await requireCurrentUser();
   if (authResult.response) return NextResponse.json({ items: [] });
 
   await connectToDatabase();
-  const doc = await DailyFocus.findOne({ userId: authResult.user.id }).lean() as any;
+  const doc = await DailyFocus.findOne({ userId: authResult.user.id }).lean() as { items?: IDailyFocusItem[] } | null;
   return NextResponse.json({ items: doc?.items ?? [] });
 }
 
@@ -18,38 +19,43 @@ export async function POST(req: NextRequest) {
   if (authResult.response) return authResult.response;
 
   await connectToDatabase();
-  const { sourceType, sourceId, parentId, title, parentTitle } =
+  const { _id, sourceType, sourceId, parentId, title, parentTitle, startDate, dueDate, addedAt, completed } =
     (await req.json()) as {
+      _id?: string;
       sourceType: DailyFocusSourceType;
       sourceId?: string;
       parentId?: string;
       title: string;
       parentTitle?: string;
+      startDate?: string | null;
+      dueDate?: string | null;
+      addedAt?: string;
+      completed?: boolean;
     };
 
   if (!title?.trim()) {
     return NextResponse.json({ error: 'Title is required' }, { status: 400 });
   }
 
-  // Upsert the doc and push the new item (prevent duplicates by sourceId)
-  const doc = await DailyFocus.findOneAndUpdate(
-    { userId: authResult.user.id },
-    {
-      $push: {
-        items: {
-          sourceType,
-          sourceId: sourceId || new Date().getTime().toString(),
-          parentId: parentId || '',
-          title: title.trim(),
-          parentTitle: parentTitle || '',
-          completed: false,
-          addedAt: new Date(),
-        },
-      },
-    },
-    { new: true, upsert: true }
-  ).lean() as any;
+  const itemId = _id && Types.ObjectId.isValid(_id) ? new Types.ObjectId(_id) : new Types.ObjectId();
+  const item = {
+    _id: itemId,
+    sourceType,
+    sourceId: sourceId || itemId.toString(),
+    parentId: parentId || '',
+    title: title.trim(),
+    parentTitle: parentTitle || '',
+    startDate: startDate ? new Date(startDate) : null,
+    dueDate: dueDate ? new Date(dueDate) : null,
+    completed: completed ?? false,
+    addedAt: addedAt ? new Date(addedAt) : new Date(),
+  };
 
-  const added = doc.items[doc.items.length - 1];
-  return NextResponse.json(added, { status: 201 });
+  await DailyFocus.updateOne(
+    { userId: authResult.user.id },
+    { $push: { items: item } },
+    { upsert: true }
+  );
+
+  return NextResponse.json(item, { status: 201 });
 }

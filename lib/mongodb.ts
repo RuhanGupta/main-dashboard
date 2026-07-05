@@ -17,7 +17,11 @@ export async function connectToDatabase() {
 
   const uri = await getMongoUri();
 
-  cachedPromise = mongoose.connect(uri, { bufferCommands: false });
+  cachedPromise = mongoose.connect(uri, {
+    bufferCommands: false,
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+  });
   cachedConn = await cachedPromise;
   return cachedConn;
 }
@@ -33,7 +37,7 @@ async function getMongoUri(): Promise<string> {
   // Try the configured localhost URI first
   if (envUri && envUri.includes('localhost')) {
     try {
-      const testConn = await mongoose.createConnection(envUri, { serverSelectionTimeoutMS: 2000 }).asPromise();
+      const testConn = await mongoose.createConnection(envUri, { serverSelectionTimeoutMS: 350 }).asPromise();
       await testConn.close();
       return envUri;
     } catch {

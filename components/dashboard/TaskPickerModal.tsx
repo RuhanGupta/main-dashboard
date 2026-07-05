@@ -17,7 +17,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   existingItems: IDailyFocusItem[];
-  onAdd: (item: Omit<IDailyFocusItem, '_id' | 'addedAt' | 'completed'>) => Promise<void>;
+  onAdd: (item: Omit<IDailyFocusItem, '_id' | 'addedAt' | 'completed'>) => void | Promise<void>;
 }
 
 export function TaskPickerModal({ open, onClose, existingItems, onAdd }: Props) {
@@ -51,7 +51,7 @@ export function TaskPickerModal({ open, onClose, existingItems, onAdd }: Props) 
   const handleAdd = async (item: PickerItem) => {
     if (addedIds.has(item.sourceId) || adding.has(item.sourceId)) return;
     setAdding(prev => new Set(prev).add(item.sourceId));
-    await onAdd({ sourceType: item.sourceType, sourceId: item.sourceId, parentId: item.parentId, title: item.title, parentTitle: item.parentTitle });
+    await Promise.resolve(onAdd({ sourceType: item.sourceType, sourceId: item.sourceId, parentId: item.parentId, title: item.title, parentTitle: item.parentTitle }));
     setAdding(prev => { const s = new Set(prev); s.delete(item.sourceId); return s; });
   };
 

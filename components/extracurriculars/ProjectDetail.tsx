@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, ExternalLink, Edit2, CheckCircle2, Circle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,21 +8,36 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
-import { IProject } from '@/types';
+import { IProject, Priority } from '@/types';
+import { createObjectIdString } from '@/lib/client-ids';
+import { persistQueuedInBackground } from '@/lib/client-requests';
 import { cn, priorityColor, statusColor, formatDate, formatDateShort } from '@/lib/utils';
 import { ProjectForm } from './ProjectForm';
+
+type ProjectTask = IProject['tasks'][number] & {
+  startDate?: Date | string;
+};
+type TaskDraft = {
+  title: string;
+  startDate: string;
+  dueDate: string;
+  priority: Priority;
+};
+
+const emptyTaskDraft = (): TaskDraft => ({ title: '', startDate: '', dueDate: '', priority: 'medium' });
 
 export function ProjectDetail({ id }: { id: string }) {
   const router = useRouter();
   const [project, setProject] = useState<IProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', startDate: '', dueDate: '', priority: 'medium' });
+  const [newTask, setNewTask] = useState<TaskDraft>(emptyTaskDraft);
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [editingTaskIdx, setEditingTaskIdx] = useState<number | null>(null);
-  const [editTask, setEditTask] = useState({ title: '', startDate: '', dueDate: '', priority: 'medium' });
+  const [editTask, setEditTask] = useState<TaskDraft>(emptyTaskDraft);
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
 
   const fetch_ = () =>
     fetch(`/api/projects/${id}`)
@@ -32,39 +47,55 @@ export function ProjectDetail({ id }: { id: string }) {
 
   useEffect(() => { fetch_(); }, [id]);
 
-  const updateProject = async (updates: Partial<IProject>) => {
-    const body = { ...project, ...updates };
-    setProject(prev => prev ? { ...prev, ...updates } : prev);
-    const res = await fetch(`/api/projects/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+  const updateProject = (updates: Partial<IProject> | ((current: IProject) => Partial<IProject>)) => {
+    setProject(current => {
+      if (!current) return current;
+      const patch = typeof updates === 'function' ? updates(current) : updates;
+      const next = { ...current, ...patch };
+
+      persistQueuedInBackground(
+        saveQueue,
+        'project-update',
+        () => fetch(`/api/projects/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(next),
+        }),
+        () => { void fetch_(); }
+      );
+
+      return next;
     });
-    const updated = await res.json();
-    setProject(updated);
   };
 
-  const addTask = async () => {
+  const addTask = () => {
     if (!newTask.title.trim()) return;
-    const tasks = [...(project?.tasks ?? []), { ...newTask, status: 'not_started', subtasks: [] }];
-    await updateProject({ tasks } as any);
-    setNewTask({ title: '', startDate: '', dueDate: '', priority: 'medium' });
+    const task: ProjectTask = {
+      ...newTask,
+      _id: createObjectIdString(),
+      domain: 'extracurricular',
+      status: 'not_started',
+      subtasks: [],
+    };
+    setNewTask(emptyTaskDraft());
     setShowTaskForm(false);
+    updateProject(current => ({ tasks: [...(current.tasks ?? []), task] }));
   };
 
-  const toggleTask = async (idx: number) => {
-    const tasks = [...(project?.tasks ?? [])] as any[];
-    tasks[idx] = { ...tasks[idx], status: tasks[idx].status === 'completed' ? 'not_started' : 'completed' };
-    await updateProject({ tasks } as any);
+  const toggleTask = (idx: number) => {
+    updateProject(current => {
+      const tasks = [...(current.tasks ?? [])];
+      tasks[idx] = { ...tasks[idx], status: tasks[idx].status === 'completed' ? 'not_started' : 'completed' };
+      return { tasks };
+    });
   };
 
-  const deleteTask = async (idx: number) => {
-    const tasks = (project?.tasks ?? []).filter((_, i) => i !== idx);
-    await updateProject({ tasks } as any);
+  const deleteTask = (idx: number) => {
+    updateProject(current => ({ tasks: (current.tasks ?? []).filter((_, i) => i !== idx) }));
   };
 
   const startEditTask = (idx: number) => {
-    const t = (project?.tasks as any[] ?? [])[idx];
+    const t = ((project?.tasks ?? []) as ProjectTask[])[idx];
     setEditTask({
       title: t.title ?? '',
       startDate: t.startDate ? new Date(t.startDate).toISOString().split('T')[0] : '',
@@ -74,30 +105,33 @@ export function ProjectDetail({ id }: { id: string }) {
     setEditingTaskIdx(idx);
   };
 
-  const saveEditTask = async (idx: number) => {
-    const tasks = [...(project?.tasks as any[] ?? [])];
-    tasks[idx] = { ...tasks[idx], ...editTask };
-    await updateProject({ tasks } as any);
+  const saveEditTask = (idx: number) => {
     setEditingTaskIdx(null);
+    updateProject(current => {
+      const tasks = [...((current.tasks ?? []) as ProjectTask[])];
+      tasks[idx] = { ...tasks[idx], ...editTask };
+      return { tasks };
+    });
   };
 
-  const toggleTaskVisibility = async (idx: number) => {
-    const tasks = [...(project?.tasks ?? [])] as any[];
-    tasks[idx] = { ...tasks[idx], counselorVisible: tasks[idx].counselorVisible === false ? true : false };
-    await updateProject({ tasks } as any);
+  const toggleTaskVisibility = (idx: number) => {
+    updateProject(current => {
+      const tasks = [...(current.tasks ?? [])];
+      tasks[idx] = { ...tasks[idx], counselorVisible: tasks[idx].counselorVisible === false ? true : false };
+      return { tasks };
+    });
   };
 
-  const addLink = async () => {
+  const addLink = () => {
     if (!newLink.title.trim() || !newLink.url.trim()) return;
-    const links = [...(project?.links ?? []), newLink];
-    await updateProject({ links });
+    const link = newLink;
     setNewLink({ title: '', url: '' });
     setShowLinkForm(false);
+    updateProject(current => ({ links: [...(current.links ?? []), link] }));
   };
 
-  const deleteLink = async (idx: number) => {
-    const links = (project?.links ?? []).filter((_, i) => i !== idx);
-    await updateProject({ links });
+  const deleteLink = (idx: number) => {
+    updateProject(current => ({ links: (current.links ?? []).filter((_, i) => i !== idx) }));
   };
 
   const deleteProject = async () => {
@@ -109,7 +143,7 @@ export function ProjectDetail({ id }: { id: string }) {
   if (loading) return <div className="p-8 animate-pulse"><div className="h-8 bg-muted rounded-xl w-64" /></div>;
   if (!project) return <div className="p-8 text-muted-foreground">Project not found.</div>;
 
-  const tasks = project.tasks as any[] ?? [];
+  const tasks = (project.tasks ?? []) as ProjectTask[];
   const completedCount = tasks.filter(t => t.status === 'completed').length;
 
   return (
@@ -199,7 +233,7 @@ export function ProjectDetail({ id }: { id: string }) {
                       <Input type="date" value={newTask.dueDate} onChange={e => setNewTask(t => ({ ...t, dueDate: e.target.value }))} />
                     </div>
                   </div>
-                  <Select value={newTask.priority} onChange={e => setNewTask(t => ({ ...t, priority: e.target.value }))}>
+                  <Select value={newTask.priority} onChange={e => setNewTask(t => ({ ...t, priority: e.target.value as Priority }))}>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
@@ -238,7 +272,7 @@ export function ProjectDetail({ id }: { id: string }) {
                               <Input type="date" value={editTask.dueDate} onChange={e => setEditTask(et => ({ ...et, dueDate: e.target.value }))} />
                             </div>
                           </div>
-                          <Select value={editTask.priority} onChange={e => setEditTask(et => ({ ...et, priority: e.target.value }))}>
+                          <Select value={editTask.priority} onChange={e => setEditTask(et => ({ ...et, priority: e.target.value as Priority }))}>
                             <option value="low">Low</option>
                             <option value="medium">Medium</option>
                             <option value="high">High</option>

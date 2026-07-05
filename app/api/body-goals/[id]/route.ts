@@ -71,7 +71,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     { _id: id, userId: authResult.user.id },
     body,
     { new: true }
-  );
+  ).lean();
   return NextResponse.json(goal);
 }
 

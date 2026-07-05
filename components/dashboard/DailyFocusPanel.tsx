@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { Plus, CheckCircle2, Circle, X, Sparkles, BookOpen, Star, Dumbbell, Edit2, Check, ListPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createObjectIdString } from '@/lib/client-ids';
+import { persistInBackground } from '@/lib/client-requests';
 import type { IDailyFocusItem } from '@/types';
 import { TaskPickerModal } from './TaskPickerModal';
 
@@ -52,47 +54,64 @@ export function DailyFocusPanel() {
 
   useEffect(() => { fetchItems().finally(() => setLoading(false)); }, []);
 
-  const toggle = async (item: IDailyFocusItem) => {
+  const toggle = (item: IDailyFocusItem) => {
     const next = !item.completed;
     setItems(prev => sortItems(prev.map(i => i._id === item._id ? { ...i, completed: next } : i)));
-    await fetch(`/api/daily-focus/${item._id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed: next }),
-    });
+    persistInBackground(
+      'daily-focus-toggle',
+      () => fetch(`/api/daily-focus/${item._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: next }),
+      }),
+      () => setItems(prev => sortItems(prev.map(i => i._id === item._id ? item : i)))
+    );
   };
 
-  const remove = async (item: IDailyFocusItem) => {
+  const remove = (item: IDailyFocusItem) => {
     setItems(prev => prev.filter(i => i._id !== item._id));
-    await fetch(`/api/daily-focus/${item._id}`, { method: 'DELETE' });
+    persistInBackground(
+      'daily-focus-remove',
+      () => fetch(`/api/daily-focus/${item._id}`, { method: 'DELETE' }),
+      () => setItems(prev => sortItems([...prev, item]))
+    );
   };
 
-  const addItem = async (newItem: Omit<IDailyFocusItem, '_id' | 'addedAt' | 'completed'>) => {
-    const res = await fetch('/api/daily-focus', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newItem),
-    });
-    const created = await res.json();
-    setItems(prev => sortItems([...prev, { ...created, completed: false }]));
+  const addItem = (newItem: Omit<IDailyFocusItem, '_id' | 'addedAt' | 'completed'>) => {
+    const id = createObjectIdString();
+    const optimistic: IDailyFocusItem = {
+      ...newItem,
+      _id: id,
+      sourceId: newItem.sourceId || id,
+      completed: false,
+      addedAt: new Date().toISOString(),
+    };
+
+    setItems(prev => sortItems([...prev, optimistic]));
+    persistInBackground(
+      'daily-focus-add',
+      () => fetch('/api/daily-focus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(optimistic),
+      }),
+      () => setItems(prev => prev.filter(i => i._id !== id))
+    );
   };
 
-  const addQuickTask = async () => {
+  const addQuickTask = () => {
     const title = quickTitle.trim();
     if (!title || adding) return;
     setAdding(true);
-    try {
-      await addItem({
-        sourceType: 'quick_task',
-        sourceId: '',
-        parentId: '',
-        title,
-        parentTitle: '',
-      });
-      setQuickTitle('');
-    } finally {
-      setAdding(false);
-    }
+    setQuickTitle('');
+    addItem({
+      sourceType: 'quick_task',
+      sourceId: '',
+      parentId: '',
+      title,
+      parentTitle: '',
+    });
+    setAdding(false);
   };
 
   const startEdit = (item: IDailyFocusItem) => {
@@ -105,7 +124,7 @@ export function DailyFocusPanel() {
 
   const cancelEdit = () => setEditingId(null);
 
-  const saveEdit = async (item: IDailyFocusItem) => {
+  const saveEdit = (item: IDailyFocusItem) => {
     const updated = {
       ...item,
       startDate: editDates.startDate || null,
@@ -113,11 +132,15 @@ export function DailyFocusPanel() {
     };
     setItems(prev => sortItems(prev.map(i => i._id === item._id ? updated : i)));
     setEditingId(null);
-    await fetch(`/api/daily-focus/${item._id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ startDate: editDates.startDate || null, dueDate: editDates.dueDate || null }),
-    });
+    persistInBackground(
+      'daily-focus-edit',
+      () => fetch(`/api/daily-focus/${item._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startDate: editDates.startDate || null, dueDate: editDates.dueDate || null }),
+      }),
+      () => setItems(prev => sortItems(prev.map(i => i._id === item._id ? item : i)))
+    );
   };
 
   const done  = items.filter(i => i.completed).length;

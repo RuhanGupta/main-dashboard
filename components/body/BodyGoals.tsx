@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2, CheckCircle2, Circle, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { cn, statusColor, formatDateShort } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { createObjectIdString } from '@/lib/client-ids';
+import { persistQueuedInBackground } from '@/lib/client-requests';
 
 interface BodyGoal {
   _id?: string;
@@ -16,7 +18,7 @@ interface BodyGoal {
   notes?: string;
   status: string;
   dueDate?: string;
-  subtasks: Array<{ title: string; completed: boolean; dueDate?: string; notes?: string }>;
+  subtasks: Array<{ _id?: string; title: string; completed: boolean; dueDate?: string; notes?: string }>;
 }
 
 export function BodyGoals() {
@@ -24,6 +26,7 @@ export function BodyGoals() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', notes: '', status: 'not_started', dueDate: '' });
+  const saveQueues = useRef(new Map<string, { current: Promise<unknown> }>());
 
   const fetchGoals = async () => {
     const res = await fetch('/api/body-goals');
@@ -32,6 +35,15 @@ export function BodyGoals() {
   };
 
   useEffect(() => { fetchGoals().finally(() => setLoading(false)); }, []);
+
+  const getSaveQueue = (id: string) => {
+    let queue = saveQueues.current.get(id);
+    if (!queue) {
+      queue = { current: Promise.resolve() };
+      saveQueues.current.set(id, queue);
+    }
+    return queue;
+  };
 
   const createGoal = async () => {
     if (!form.title.trim()) return;
@@ -46,31 +58,37 @@ export function BodyGoals() {
     setShowForm(false);
   };
 
-  const addSubtask = async (goal: BodyGoal, title: string) => {
-    const subtasks = [...goal.subtasks, { title, completed: false }];
+  const addSubtask = (goal: BodyGoal, title: string) => {
+    const subtasks = [...goal.subtasks, { _id: createObjectIdString(), title, completed: false }];
     const body = { ...goal, subtasks };
     setGoals(prev => prev.map(g => g._id === goal._id ? { ...g, subtasks } : g));
-    const res = await fetch(`/api/body-goals/${goal._id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const updated = await res.json();
-    setGoals(prev => prev.map(g => g._id === goal._id ? updated : g));
+    persistQueuedInBackground(
+      getSaveQueue(goal._id!),
+      'body-goal-add-subtask',
+      () => fetch(`/api/body-goals/${goal._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+      () => { void fetchGoals(); }
+    );
   };
 
-  const toggleSubtask = async (goal: BodyGoal, idx: number) => {
+  const toggleSubtask = (goal: BodyGoal, idx: number) => {
     const subtasks = [...goal.subtasks];
     subtasks[idx] = { ...subtasks[idx], completed: !subtasks[idx].completed };
     const body = { ...goal, subtasks };
     setGoals(prev => prev.map(g => g._id === goal._id ? { ...g, subtasks } : g));
-    const res = await fetch(`/api/body-goals/${goal._id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const updated = await res.json();
-    setGoals(prev => prev.map(g => g._id === goal._id ? updated : g));
+    persistQueuedInBackground(
+      getSaveQueue(goal._id!),
+      'body-goal-toggle-subtask',
+      () => fetch(`/api/body-goals/${goal._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+      () => { void fetchGoals(); }
+    );
   };
 
   const deleteGoal = async (id: string) => {

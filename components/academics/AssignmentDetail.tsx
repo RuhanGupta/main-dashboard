@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, ExternalLink, Edit2, CheckCircle2, Circle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,21 +8,33 @@ import { Select } from '@/components/ui/select';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
-import { IAssignment } from '@/types';
+import { IAssignment, Priority } from '@/types';
+import { createObjectIdString } from '@/lib/client-ids';
+import { persistQueuedInBackground } from '@/lib/client-requests';
 import { cn, priorityColor, statusColor, formatDate } from '@/lib/utils';
 import { AssignmentForm } from './AssignmentForm';
+
+type SubtaskDraft = {
+  title: string;
+  startDate: string;
+  dueDate: string;
+  priority: Priority;
+};
+
+const emptySubtaskDraft = (): SubtaskDraft => ({ title: '', startDate: '', dueDate: '', priority: 'medium' });
 
 export function AssignmentDetail({ id }: { id: string }) {
   const router = useRouter();
   const [assignment, setAssignment] = useState<IAssignment | null>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [newSubtask, setNewSubtask] = useState({ title: '', startDate: '', dueDate: '', priority: 'medium' as const });
+  const [newSubtask, setNewSubtask] = useState<SubtaskDraft>(emptySubtaskDraft);
   const [newLink, setNewLink] = useState({ title: '', url: '' });
   const [showSubtaskForm, setShowSubtaskForm] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [editingSubtaskIdx, setEditingSubtaskIdx] = useState<number | null>(null);
-  const [editSubtask, setEditSubtask] = useState({ title: '', startDate: '', dueDate: '', priority: 'medium' as const });
+  const [editSubtask, setEditSubtask] = useState<SubtaskDraft>(emptySubtaskDraft);
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
 
   const fetch_ = () =>
     fetch(`/api/assignments/${id}`)
@@ -32,35 +44,45 @@ export function AssignmentDetail({ id }: { id: string }) {
 
   useEffect(() => { fetch_(); }, [id]);
 
-  const updateAssignment = async (updates: Partial<IAssignment>) => {
-    const body = { ...assignment, ...updates };
-    setAssignment(prev => prev ? { ...prev, ...updates } : prev);
-    const res = await fetch(`/api/assignments/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+  const updateAssignment = (updates: Partial<IAssignment> | ((current: IAssignment) => Partial<IAssignment>)) => {
+    setAssignment(current => {
+      if (!current) return current;
+      const patch = typeof updates === 'function' ? updates(current) : updates;
+      const next = { ...current, ...patch };
+
+      persistQueuedInBackground(
+        saveQueue,
+        'assignment-update',
+        () => fetch(`/api/assignments/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(next),
+        }),
+        () => { void fetch_(); }
+      );
+
+      return next;
     });
-    const updated = await res.json();
-    setAssignment(updated);
   };
 
-  const addSubtask = async () => {
+  const addSubtask = () => {
     if (!newSubtask.title.trim()) return;
-    const subtasks = [...(assignment?.subtasks ?? []), { ...newSubtask, status: 'not_started' as const, completed: false }];
-    await updateAssignment({ subtasks });
-    setNewSubtask({ title: '', startDate: '', dueDate: '', priority: 'medium' });
+    const subtask = { ...newSubtask, _id: createObjectIdString(), status: 'not_started' as const, completed: false };
+    setNewSubtask(emptySubtaskDraft());
     setShowSubtaskForm(false);
+    updateAssignment(current => ({ subtasks: [...(current.subtasks ?? []), subtask] }));
   };
 
-  const toggleSubtask = async (idx: number) => {
-    const subtasks = [...(assignment?.subtasks ?? [])];
-    subtasks[idx] = { ...subtasks[idx], completed: !subtasks[idx].completed, status: !subtasks[idx].completed ? 'completed' : 'not_started' };
-    await updateAssignment({ subtasks });
+  const toggleSubtask = (idx: number) => {
+    updateAssignment(current => {
+      const subtasks = [...(current.subtasks ?? [])];
+      subtasks[idx] = { ...subtasks[idx], completed: !subtasks[idx].completed, status: !subtasks[idx].completed ? 'completed' : 'not_started' };
+      return { subtasks };
+    });
   };
 
-  const deleteSubtask = async (idx: number) => {
-    const subtasks = (assignment?.subtasks ?? []).filter((_, i) => i !== idx);
-    await updateAssignment({ subtasks });
+  const deleteSubtask = (idx: number) => {
+    updateAssignment(current => ({ subtasks: (current.subtasks ?? []).filter((_, i) => i !== idx) }));
   };
 
   const startEditSubtask = (idx: number) => {
@@ -69,35 +91,38 @@ export function AssignmentDetail({ id }: { id: string }) {
       title: s.title ?? '',
       startDate: s.startDate ? new Date(s.startDate as string).toISOString().split('T')[0] : '',
       dueDate: s.dueDate ? new Date(s.dueDate as string).toISOString().split('T')[0] : '',
-      priority: (s.priority ?? 'medium') as any,
+      priority: s.priority ?? 'medium',
     });
     setEditingSubtaskIdx(idx);
   };
 
-  const saveEditSubtask = async (idx: number) => {
-    const subtasks = [...(assignment?.subtasks ?? [])];
-    subtasks[idx] = { ...subtasks[idx], ...editSubtask };
-    await updateAssignment({ subtasks });
+  const saveEditSubtask = (idx: number) => {
     setEditingSubtaskIdx(null);
+    updateAssignment(current => {
+      const subtasks = [...(current.subtasks ?? [])];
+      subtasks[idx] = { ...subtasks[idx], ...editSubtask };
+      return { subtasks };
+    });
   };
 
-  const toggleSubtaskVisibility = async (idx: number) => {
-    const subtasks = [...(assignment?.subtasks ?? [])];
-    subtasks[idx] = { ...subtasks[idx], counselorVisible: subtasks[idx].counselorVisible === false ? true : false };
-    await updateAssignment({ subtasks });
+  const toggleSubtaskVisibility = (idx: number) => {
+    updateAssignment(current => {
+      const subtasks = [...(current.subtasks ?? [])];
+      subtasks[idx] = { ...subtasks[idx], counselorVisible: subtasks[idx].counselorVisible === false ? true : false };
+      return { subtasks };
+    });
   };
 
-  const addLink = async () => {
+  const addLink = () => {
     if (!newLink.title.trim() || !newLink.url.trim()) return;
-    const links = [...(assignment?.links ?? []), newLink];
-    await updateAssignment({ links });
+    const link = newLink;
     setNewLink({ title: '', url: '' });
     setShowLinkForm(false);
+    updateAssignment(current => ({ links: [...(current.links ?? []), link] }));
   };
 
-  const deleteLink = async (idx: number) => {
-    const links = (assignment?.links ?? []).filter((_, i) => i !== idx);
-    await updateAssignment({ links });
+  const deleteLink = (idx: number) => {
+    updateAssignment(current => ({ links: (current.links ?? []).filter((_, i) => i !== idx) }));
   };
 
   const deleteAssignment = async () => {
@@ -191,7 +216,7 @@ export function AssignmentDetail({ id }: { id: string }) {
                       <Input type="date" value={newSubtask.dueDate} onChange={e => setNewSubtask(s => ({ ...s, dueDate: e.target.value }))} />
                     </div>
                   </div>
-                  <Select value={newSubtask.priority} onChange={e => setNewSubtask(s => ({ ...s, priority: e.target.value as any }))}>
+                  <Select value={newSubtask.priority} onChange={e => setNewSubtask(s => ({ ...s, priority: e.target.value as Priority }))}>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
@@ -230,7 +255,7 @@ export function AssignmentDetail({ id }: { id: string }) {
                               <Input type="date" value={editSubtask.dueDate} onChange={e => setEditSubtask(es => ({ ...es, dueDate: e.target.value }))} />
                             </div>
                           </div>
-                          <Select value={editSubtask.priority} onChange={e => setEditSubtask(es => ({ ...es, priority: e.target.value as any }))}>
+                          <Select value={editSubtask.priority} onChange={e => setEditSubtask(es => ({ ...es, priority: e.target.value as Priority }))}>
                             <option value="low">Low</option>
                             <option value="medium">Medium</option>
                             <option value="high">High</option>
