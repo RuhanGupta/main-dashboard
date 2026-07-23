@@ -37,6 +37,25 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     { new: true }
   );
   if (!workout) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  // Daily/weekly occurrences are pre-generated ahead of time and may still be
+  // empty placeholders (see ensureRecurringOccurrences). When exercises are
+  // added/edited on one occurrence, carry them forward to later occurrences
+  // in the same series that haven't been customized yet, so e.g. adding
+  // exercises to a daily recurring workout shows up on the following days too.
+  if ('exercises' in body && workout.isRecurring && workout.recurringGroupId) {
+    await Workout.updateMany(
+      {
+        userId: authResult.user.id,
+        recurringGroupId: workout.recurringGroupId,
+        date: { $gt: workout.date },
+        exercises: { $size: 0 },
+        _id: { $ne: workout._id },
+      },
+      { exercises: workout.exercises }
+    );
+  }
+
   return NextResponse.json(workout);
 }
 
