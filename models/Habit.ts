@@ -15,4 +15,6 @@ const HabitSchema = new Schema({
   streak: { type: Number, default: 0 },
 }, { timestamps: true });
 
+HabitSchema.index({ userId: 1, createdAt: 1 });
+
 export const Habit = models.Habit ?? model('Habit', HabitSchema);

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { format, addDays, subDays, startOfDay, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Trash2, CheckCircle2, Circle, CircleDot, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,8 +48,13 @@ function currentStreak(task: IAcademicRecurringTask): number {
   return streak;
 }
 
-export function AcademicRecurringPlanner() {
-  const [tasks, setTasks] = useState<IAcademicRecurringTask[]>([]);
+export function AcademicRecurringPlanner({
+  initialTasks = [],
+}: {
+  initialTasks?: IAcademicRecurringTask[];
+}) {
+  // Seeded from the server render — no initial fetch.
+  const [tasks, setTasks] = useState<IAcademicRecurringTask[]>(initialTasks);
   const [weekOffset, setWeekOffset] = useState(0);
   const [addDay, setAddDay] = useState<Date | null>(null);
   const [detail, setDetail] = useState<{ task: IAcademicRecurringTask; day: Date } | null>(null);
@@ -59,13 +64,13 @@ export function AcademicRecurringPlanner() {
   const weekStart = subDays(startOfDay(referenceDate), referenceDate.getDay());
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
+  // Refetch after mutations; the first render is already populated by the server.
   const fetchTasks = async () => {
     const res = await fetch('/api/academic-recurring-tasks');
+    if (!res.ok) return;
     const data = await res.json();
     setTasks(Array.isArray(data) ? data : []);
   };
-
-  useEffect(() => { fetchTasks(); }, []);
 
   const tasksForDay = (day: Date) =>
     tasks

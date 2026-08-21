@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { AcademicRecurringTask } from '@/models/AcademicRecurringTask';
-import { emptyListResponse, removeClientManagedFields, requireCurrentUser } from '@/lib/api-helpers';
+import {
+  emptyListResponse,
+  readJsonBody,
+  removeClientManagedFields,
+  requireCurrentUser,
+} from '@/lib/api-helpers';
 
 type RecurringTaskBody = {
   _id?: unknown;
   userId?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
-  googleTaskId?: unknown;
   [key: string]: unknown;
 };
 
@@ -39,7 +43,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const tasks = await AcademicRecurringTask.find(query).sort({ dayOfWeek: 1, startTime: 1 });
+  const tasks = await AcademicRecurringTask.find(query).sort({ dayOfWeek: 1, startTime: 1 }).lean();
   return NextResponse.json(tasks);
 }
 
@@ -48,7 +52,9 @@ export async function POST(req: NextRequest) {
   if (authResult.response) return authResult.response;
 
   await connectToDatabase();
-  const body = (await req.json()) as RecurringTaskBody;
+  const parsed_body = await readJsonBody<RecurringTaskBody>(req);
+  if (parsed_body.response) return parsed_body.response;
+  const body = parsed_body.body;
   removeClientManagedFields(body);
   const task = await AcademicRecurringTask.create({ ...body, userId: authResult.user.id });
   return NextResponse.json(task, { status: 201 });

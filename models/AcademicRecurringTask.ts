@@ -29,5 +29,7 @@ const AcademicRecurringTaskSchema = new Schema(
   { timestamps: true }
 );
 
+AcademicRecurringTaskSchema.index({ userId: 1, active: 1, dayOfWeek: 1, startTime: 1 });
+
 export const AcademicRecurringTask =
   models.AcademicRecurringTask ?? model('AcademicRecurringTask', AcademicRecurringTaskSchema);

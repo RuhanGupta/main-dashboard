@@ -3,12 +3,11 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Project } from '@/models/Project';
 import {
   emptyListResponse,
-  googleSyncErrorResponse,
   normalizeDateInput,
+  readJsonBody,
   removeClientManagedFields,
   requireCurrentUser,
 } from '@/lib/api-helpers';
-import { buildTaskNotes, createTask } from '@/lib/google-tasks';
 
 type ProjectBody = {
   _id?: unknown;
@@ -21,7 +20,6 @@ type ProjectBody = {
   notes?: string | null;
   links?: unknown[];
   tasks?: unknown[];
-  googleTaskId?: string | null;
   userId?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
@@ -41,7 +39,9 @@ export async function POST(req: NextRequest) {
   if (authResult.response) return authResult.response;
 
   await connectToDatabase();
-  const body = (await req.json()) as ProjectBody;
+  const parsed_body = await readJsonBody<ProjectBody>(req);
+  if (parsed_body.response) return parsed_body.response;
+  const body = parsed_body.body;
   removeClientManagedFields(body);
   body.startDate = normalizeDateInput(body.startDate);
   body.dueDate = normalizeDateInput(body.dueDate);
@@ -50,24 +50,5 @@ export async function POST(req: NextRequest) {
   doc.set({ ...body, userId: authResult.user.id }, { strict: false });
   const project = await doc.save();
 
-  if (authResult.user.accessToken && project.dueDate) {
-    try {
-      const id = await createTask(authResult.user.accessToken, {
-        title: `⭐ ${project.title}`,
-        notes: buildTaskNotes(project.notes, `project:${project._id.toString()}`),
-        dueDate: project.dueDate,
-        completed: project.status === 'completed',
-      });
-      await Project.findOneAndUpdate(
-        { _id: project._id, userId: authResult.user.id },
-        { googleTaskId: id }
-      );
-    } catch (error) {
-      // Log but don't delete — user can sync later via the sync button
-      console.error('[google-tasks] Failed to create task for new project:', error);
-    }
-  }
-
-  const saved = await Project.findOne({ _id: project._id, userId: authResult.user.id }).lean();
-  return NextResponse.json(saved, { status: 201 });
+  return NextResponse.json(project, { status: 201 });
 }

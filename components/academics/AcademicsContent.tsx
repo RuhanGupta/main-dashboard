@@ -1,17 +1,25 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Plus, BookOpen, Filter, Share2, Copy, Check, RefreshCw, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { IAssignment } from '@/types';
+import { IAssignment, IAcademicRecurringTask } from '@/types';
 import { AssignmentCard } from './AssignmentCard';
 import { AssignmentForm } from './AssignmentForm';
 import { AcademicRecurringPlanner } from './AcademicRecurringPlanner';
 import { Modal } from '@/components/ui/modal';
 
-export function AcademicsContent() {
-  const [assignments, setAssignments] = useState<IAssignment[]>([]);
-  const [loading, setLoading] = useState(true);
+type AcademicsContentProps = {
+  initialAssignments?: IAssignment[];
+  initialRecurringTasks?: IAcademicRecurringTask[];
+};
+
+export function AcademicsContent({
+  initialAssignments = [],
+  initialRecurringTasks = [],
+}: AcademicsContentProps) {
+  // Seeded from the server render — no initial fetch, no loading flash.
+  const [assignments, setAssignments] = useState<IAssignment[]>(initialAssignments);
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -49,15 +57,13 @@ export function AcademicsContent() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Refetch after mutations; the first render is already populated by the server.
   const fetchAssignments = async () => {
     const res = await fetch('/api/assignments');
+    if (!res.ok) return;
     const data = await res.json();
-    setAssignments(data);
+    setAssignments(Array.isArray(data) ? data : []);
   };
-
-  useEffect(() => {
-    fetchAssignments().finally(() => setLoading(false));
-  }, []);
 
   const filtered = filterStatus === 'all'
     ? assignments
@@ -126,15 +132,11 @@ export function AcademicsContent() {
             <p className="text-xs text-muted-foreground">Repeating study sessions, practice, and reflection</p>
           </div>
         </div>
-        <AcademicRecurringPlanner />
+        <AcademicRecurringPlanner initialTasks={initialRecurringTasks} />
       </Card>
 
       {/* Assignments by course */}
-      {loading ? (
-        <div className="space-y-4 animate-pulse">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 bg-muted rounded-2xl" />)}
-        </div>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <Card className="p-14 text-center">
           <BookOpen className="w-12 h-12 text-border-strong mx-auto mb-3" />
           <p className="text-foreground font-serif font-medium text-lg">No assignments yet</p>

@@ -11,7 +11,6 @@ export interface ISubtask {
   priority: Priority;
   status: Status;
   notes?: string;
-  googleTaskId?: string;
   completed: boolean;
   counselorVisible?: boolean;
 }
@@ -28,7 +27,6 @@ export interface ITask {
   status: Status;
   notes?: string;
   subtasks: ISubtask[];
-  googleTaskId?: string;
   counselorVisible?: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;
@@ -51,7 +49,6 @@ export interface IAssignment {
   notes?: string;
   links: ILink[];
   subtasks: ISubtask[];
-  googleTaskId?: string;
   counselorVisible?: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;
@@ -69,7 +66,6 @@ export interface IProject {
   notes?: string;
   links: ILink[];
   tasks: ITask[];
-  googleTaskId?: string;
   counselorVisible?: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;

@@ -5,7 +5,6 @@ import { jwtVerify } from 'jose';
 const PUBLIC_PREFIXES = [
   '/login',
   '/counselor/',
-  '/api/auth/',         // NextAuth's own endpoints
   '/api/counselor/',    // Public counselor read endpoint
   '/api/dashboard-auth', // Password login endpoint (no auth needed to call it)
   '/_next/',
@@ -21,7 +20,7 @@ export async function proxy(req: NextRequest) {
 
   if (isPublic(pathname)) return NextResponse.next();
 
-  // ── 1. Check our password cookie (verified JWT) ───────────────────────────
+  // ── 1. Check the password cookie (verified JWT) ───────────────────────────
   const dashToken = req.cookies.get('dashboard_token')?.value;
   if (dashToken) {
     try {
@@ -33,16 +32,7 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // ── 2. Check for a NextAuth session cookie (dev or prod name) ─────────────
-  // We only check existence here; the API routes/server functions verify the
-  // actual content via next-auth's auth() call.
-  const hasNextAuth =
-    req.cookies.has('authjs.session-token') ||
-    req.cookies.has('__Secure-authjs.session-token');
-
-  if (hasNextAuth) return NextResponse.next();
-
-  // ── 3. Not authenticated ───────────────────────────────────────────────────
+  // ── 2. Not authenticated ───────────────────────────────────────────────────
   // API routes return 401 themselves — don't redirect them.
   if (pathname.startsWith('/api/')) return NextResponse.next();
 

@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Habit } from '@/models/Habit';
-import { emptyListResponse, removeClientManagedFields, requireCurrentUser } from '@/lib/api-helpers';
+import {
+  emptyListResponse,
+  readJsonBody,
+  removeClientManagedFields,
+  requireCurrentUser,
+} from '@/lib/api-helpers';
 
 type HabitBody = {
   _id?: unknown;
   userId?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
-  googleTaskId?: unknown;
   [key: string]: unknown;
 };
 
@@ -17,7 +21,7 @@ export async function GET() {
   if (authResult.response) return emptyListResponse();
 
   await connectToDatabase();
-  const habits = await Habit.find({ userId: authResult.user.id }).sort({ createdAt: 1 });
+  const habits = await Habit.find({ userId: authResult.user.id }).sort({ createdAt: 1 }).lean();
   return NextResponse.json(habits);
 }
 
@@ -26,7 +30,9 @@ export async function POST(req: NextRequest) {
   if (authResult.response) return authResult.response;
 
   await connectToDatabase();
-  const body = (await req.json()) as HabitBody;
+  const parsed_body = await readJsonBody<HabitBody>(req);
+  if (parsed_body.response) return parsed_body.response;
+  const body = parsed_body.body;
   removeClientManagedFields(body);
   const habit = await Habit.create({ ...body, userId: authResult.user.id });
   return NextResponse.json(habit, { status: 201 });

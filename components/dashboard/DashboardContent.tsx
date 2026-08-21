@@ -1,37 +1,16 @@
-'use client';
-import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { BookOpen, Star, Dumbbell, CheckCircle2, Clock, Feather, ArrowRight, ListTodo } from 'lucide-react';
+import { BookOpen, Star, Dumbbell, CheckCircle2, Feather, ArrowRight, ListTodo } from 'lucide-react';
 import Link from 'next/link';
-import { IAssignment, IAcademicRecurringTask } from '@/types';
 import { WeeklyCalendar } from './WeeklyCalendar';
 import { TaskItem } from './TaskItem';
 import { DailyFocusPanel } from './DailyFocusPanel';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { getDashboardWindow, getDailyFocusItems } from '@/lib/server-data';
 
-interface DashboardData {
-  assignments: IAssignment[];
-  projectTasks: Array<{ _id: string; title: string; dueDate?: string; projectTitle?: string; priority?: string; status?: string }>;
-  workouts: Array<{ _id: string; title: string; date: string; exercises?: unknown[]; completed?: boolean }>;
-  academicRecurringTasks: IAcademicRecurringTask[];
-  windowStart: string;
-  windowEnd: string;
-}
-
-export function DashboardContent() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('/api/dashboard')
-      .then(r => r.json())
-      .then(setData)
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <DashboardSkeleton />;
-  if (!data) return <p className="text-muted-foreground">Failed to load dashboard.</p>;
-
+export async function DashboardContent() {
+  // Queried during the server render rather than fetched after hydration, so
+  // the dashboard arrives with its data already in place.
+  const [data, focusItems] = await Promise.all([getDashboardWindow(), getDailyFocusItems()]);
   const { assignments, projectTasks, workouts, academicRecurringTasks, windowStart, windowEnd } = data;
 
   const subtasksInWindow = assignments.flatMap(a =>
@@ -89,7 +68,7 @@ export function DashboardContent() {
       </div>
 
       {/* Daily Focus */}
-      <DailyFocusPanel />
+      <DailyFocusPanel initialItems={focusItems} />
 
       {/* Weekly Calendar */}
       <WeeklyCalendar
@@ -179,19 +158,6 @@ function StatCard({ label, value, icon, accent }: { label: string; value: number
         <span className="text-[1.7rem] font-serif font-semibold text-foreground tabular-nums">{value}</span>
       </div>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
-    </div>
-  );
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6 animate-pulse max-w-6xl">
-      <div className="h-9 bg-muted rounded-xl w-72" />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-muted rounded-2xl" />)}
-      </div>
-      <div className="h-24 bg-muted rounded-2xl" />
-      <div className="h-80 bg-muted rounded-3xl" />
     </div>
   );
 }

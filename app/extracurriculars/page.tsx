@@ -1,5 +1,7 @@
 import { ExtracurricularsContent } from '@/components/extracurriculars/ExtracurricularsContent';
+import { getProjects } from '@/lib/server-data';
 
-export default function ExtracurricularsPage() {
-  return <ExtracurricularsContent />;
+export default async function ExtracurricularsPage() {
+  const projects = await getProjects();
+  return <ExtracurricularsContent initialProjects={projects} />;
 }

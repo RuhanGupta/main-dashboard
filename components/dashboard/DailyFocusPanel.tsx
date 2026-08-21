@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Plus, CheckCircle2, Circle, X, Sparkles, BookOpen, Star, Dumbbell, Edit2, Check, ListPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createObjectIdString } from '@/lib/client-ids';
@@ -37,22 +37,14 @@ function formatDateDisplay(val: string | null | undefined): string {
   } catch { return ''; }
 }
 
-export function DailyFocusPanel() {
-  const [items, setItems]           = useState<IDailyFocusItem[]>([]);
-  const [loading, setLoading]       = useState(true);
+export function DailyFocusPanel({ initialItems = [] }: { initialItems?: IDailyFocusItem[] }) {
+  // Seeded from the server render — no initial fetch.
+  const [items, setItems]           = useState<IDailyFocusItem[]>(sortItems(initialItems));
   const [showPicker, setShowPicker] = useState(false);
   const [editingId, setEditingId]   = useState<string | null>(null);
   const [editDates, setEditDates]   = useState({ startDate: '', dueDate: '' });
   const [quickTitle, setQuickTitle] = useState('');
   const [adding, setAdding]         = useState(false);
-
-  const fetchItems = async () => {
-    const res = await fetch('/api/daily-focus');
-    const data = await res.json();
-    setItems(data.items ?? []);
-  };
-
-  useEffect(() => { fetchItems().finally(() => setLoading(false)); }, []);
 
   const toggle = (item: IDailyFocusItem) => {
     const next = !item.completed;
@@ -146,10 +138,6 @@ export function DailyFocusPanel() {
   const done  = items.filter(i => i.completed).length;
   const total = items.length;
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
-
-  if (loading) {
-    return <div className="h-28 bg-muted rounded-3xl animate-pulse" />;
-  }
 
   const sorted = sortItems(items);
 

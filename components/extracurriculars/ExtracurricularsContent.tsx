@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Plus, Star, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,21 +10,23 @@ import { Modal } from '@/components/ui/modal';
 import { WeeklyTaskList } from './WeeklyTaskList';
 import { addDays, subDays, startOfDay, endOfDay } from 'date-fns';
 
-export function ExtracurricularsContent() {
-  const [projects, setProjects] = useState<IProject[]>([]);
-  const [loading, setLoading] = useState(true);
+export function ExtracurricularsContent({
+  initialProjects = [],
+}: {
+  initialProjects?: IProject[];
+}) {
+  // Seeded from the server render — no initial fetch, no loading flash.
+  const [projects, setProjects] = useState<IProject[]>(initialProjects);
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState<'weekly' | 'all'>('weekly');
 
+  // Refetch after mutations; the first render is already populated by the server.
   const fetchProjects = async () => {
     const res = await fetch('/api/projects');
+    if (!res.ok) return;
     const data = await res.json();
-    setProjects(data);
+    setProjects(Array.isArray(data) ? data : []);
   };
-
-  useEffect(() => {
-    fetchProjects().finally(() => setLoading(false));
-  }, []);
 
   const today = new Date();
   const windowStart = subDays(startOfDay(today), 2);
@@ -77,11 +79,7 @@ export function ExtracurricularsContent() {
         </button>
       </div>
 
-      {loading ? (
-        <div className="space-y-4 animate-pulse">
-          {[1, 2, 3].map(i => <div key={i} className="h-28 bg-muted rounded-2xl" />)}
-        </div>
-      ) : activeTab === 'weekly' ? (
+      {activeTab === 'weekly' ? (
         <WeeklyTaskList tasks={weeklyTasks} onUpdate={fetchProjects} />
       ) : (
         <div className="space-y-4">

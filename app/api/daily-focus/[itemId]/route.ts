@@ -4,7 +4,10 @@ import { DailyFocus } from '@/models/DailyFocus';
 import { Assignment } from '@/models/Assignment';
 import { Project } from '@/models/Project';
 import { BodyGoal } from '@/models/BodyGoal';
-import { requireCurrentUser } from '@/lib/api-helpers';
+import {
+  readJsonBody,
+  requireCurrentUser,
+} from '@/lib/api-helpers';
 import type { DailyFocusSourceType } from '@/types';
 
 type DailyFocusItemRecord = {
@@ -23,7 +26,13 @@ export async function PATCH(
 
   await connectToDatabase();
   const { itemId } = await params;
-  const body = (await req.json()) as { completed?: boolean; startDate?: string | null; dueDate?: string | null };
+  const parsed = await readJsonBody<{
+    completed?: boolean;
+    startDate?: string | null;
+    dueDate?: string | null;
+  }>(req);
+  if (parsed.response) return parsed.response;
+  const body = parsed.body;
 
   // Build update for the focus item itself
   const focusSet: Record<string, unknown> = {};

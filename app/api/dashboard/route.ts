@@ -5,23 +5,21 @@ import { Project } from '@/models/Project';
 import { Workout } from '@/models/Workout';
 import { AcademicRecurringTask } from '@/models/AcademicRecurringTask';
 import { addDays, subDays, startOfDay, endOfDay } from 'date-fns';
-import { getCurrentUser } from '@/lib/auth';
+import { requireCurrentUser, withRouteErrorHandling } from '@/lib/api-helpers';
 
 type ProjectTaskRecord = {
   dueDate?: Date | string;
   [key: string]: unknown;
 };
 
-export async function GET() {
-  const user = await getCurrentUser();
-
-  await connectToDatabase();
-
+export const GET = withRouteErrorHandling(async () => {
   const today = new Date();
   const start = subDays(startOfDay(today), 2);
   const end = addDays(endOfDay(today), 4);
 
-  if (!user) {
+  const authResult = await requireCurrentUser();
+  if (authResult.response) {
+    // The dashboard renders an empty week rather than erroring when signed out.
     return NextResponse.json({
       assignments: [],
       projectTasks: [],
@@ -31,6 +29,9 @@ export async function GET() {
       windowEnd: end,
     });
   }
+  const user = authResult.user;
+
+  await connectToDatabase();
 
   const [assignments, projects, workouts, academicRecurringTasks] = await Promise.all([
     Assignment.find({ userId: user.id, dueDate: { $gte: start, $lte: end } }).sort({ dueDate: 1 }).lean(),
@@ -55,4 +56,4 @@ export async function GET() {
     windowStart: start,
     windowEnd: end,
   });
-}
+});

@@ -4,10 +4,10 @@ import { BodyGoal } from '@/models/BodyGoal';
 import {
   emptyListResponse,
   normalizeDateInput,
+  readJsonBody,
   removeClientManagedFields,
   requireCurrentUser,
 } from '@/lib/api-helpers';
-import { buildTaskNotes, createTask } from '@/lib/google-tasks';
 
 type BodyGoalBody = {
   _id?: unknown;
@@ -16,7 +16,6 @@ type BodyGoalBody = {
   status?: string;
   dueDate?: Date | string | null;
   subtasks?: unknown[];
-  googleTaskId?: string | null;
   userId?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
@@ -36,7 +35,9 @@ export async function POST(req: NextRequest) {
   if (authResult.response) return authResult.response;
 
   await connectToDatabase();
-  const body = (await req.json()) as BodyGoalBody;
+  const parsed_body = await readJsonBody<BodyGoalBody>(req);
+  if (parsed_body.response) return parsed_body.response;
+  const body = parsed_body.body;
   removeClientManagedFields(body);
   body.dueDate = normalizeDateInput(body.dueDate);
 
@@ -45,24 +46,5 @@ export async function POST(req: NextRequest) {
     userId: authResult.user.id,
   });
 
-  // Google Tasks sync is best-effort — never delete the DB record if it fails
-  if (authResult.user.accessToken && goal.dueDate) {
-    try {
-      const id = await createTask(authResult.user.accessToken, {
-        title: `💪 ${goal.title}`,
-        notes: buildTaskNotes(goal.notes, `body-goal:${goal._id.toString()}`),
-        dueDate: goal.dueDate,
-        completed: goal.status === 'completed',
-      });
-      await BodyGoal.findOneAndUpdate(
-        { _id: goal._id, userId: authResult.user.id },
-        { googleTaskId: id }
-      );
-    } catch (error) {
-      console.error('[google-tasks] Failed to create task for new body goal:', error);
-    }
-  }
-
-  const saved = await BodyGoal.findOne({ _id: goal._id, userId: authResult.user.id }).lean();
-  return NextResponse.json(saved, { status: 201 });
+  return NextResponse.json(goal, { status: 201 });
 }

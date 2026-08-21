@@ -9,8 +9,11 @@ import { Modal } from '@/components/ui/modal';
 import { IWorkout, IExercise } from '@/types';
 import { cn } from '@/lib/utils';
 
-export function WorkoutPlanner() {
-  const [workouts, setWorkouts] = useState<IWorkout[]>([]);
+export function WorkoutPlanner({ initialWorkouts = [] }: { initialWorkouts?: IWorkout[] }) {
+  // Seeded from the server render so the current week paints immediately. The
+  // effect below still refreshes in the background, because the API route is
+  // what generates any missing recurring occurrences.
+  const [workouts, setWorkouts] = useState<IWorkout[]>(initialWorkouts);
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedWorkout, setSelectedWorkout] = useState<IWorkout | null>(null);
@@ -28,8 +31,9 @@ export function WorkoutPlanner() {
     const start = days[0].toISOString();
     const end = days[6].toISOString();
     const res = await fetch(`/api/workouts?start=${start}&end=${end}`);
+    if (!res.ok) return;
     const data = await res.json();
-    setWorkouts(data);
+    setWorkouts(Array.isArray(data) ? data : []);
   };
 
   useEffect(() => { fetchWorkouts(); }, [weekOffset]);

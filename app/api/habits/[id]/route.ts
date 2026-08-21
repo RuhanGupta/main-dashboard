@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Habit } from '@/models/Habit';
-import { removeClientManagedFields, requireCurrentUser } from '@/lib/api-helpers';
+import {
+  readJsonBody,
+  removeClientManagedFields,
+  requireCurrentUser,
+} from '@/lib/api-helpers';
 
 type HabitBody = {
   _id?: unknown;
   userId?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
-  googleTaskId?: unknown;
   [key: string]: unknown;
 };
 
@@ -18,7 +21,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   await connectToDatabase();
   const { id } = await params;
-  const body = (await req.json()) as HabitBody;
+  const parsed_body = await readJsonBody<HabitBody>(req);
+  if (parsed_body.response) return parsed_body.response;
+  const body = parsed_body.body;
   removeClientManagedFields(body);
   const habit = await Habit.findOneAndUpdate(
     { _id: id, userId: authResult.user.id },

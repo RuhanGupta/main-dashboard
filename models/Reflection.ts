@@ -11,4 +11,6 @@ const ReflectionSchema = new Schema({
   journalEntry: String,
 }, { timestamps: true });
 
+ReflectionSchema.index({ userId: 1, date: -1 });
+
 export const Reflection = models.Reflection ?? model('Reflection', ReflectionSchema);

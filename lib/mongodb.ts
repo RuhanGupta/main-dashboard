@@ -1,29 +1,48 @@
 import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 
-type GlobalWithMongoMemoryServer = typeof globalThis & {
-  _mongoMemoryServer?: MongoMemoryServer;
+type MongoCache = {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
 };
 
-let cachedConn: typeof mongoose | null = null;
-let cachedPromise: Promise<typeof mongoose> | null = null;
+type GlobalWithMongo = typeof globalThis & {
+  _mongoMemoryServer?: MongoMemoryServer;
+  _mongooseCache?: MongoCache;
+};
+
+const globalWithMongo = globalThis as GlobalWithMongo;
+
+// The cache lives on globalThis, not in module scope: Next.js re-evaluates route
+// modules on hot reload and bundles route handlers separately, so a module-level
+// cache is dropped constantly and every request pays a fresh Atlas handshake
+// (SRV lookup + TLS + SCRAM auth ≈ 200ms, plus ~90ms per new pooled socket).
+const cache: MongoCache = (globalWithMongo._mongooseCache ??= { conn: null, promise: null });
 
 export async function connectToDatabase() {
-  if (cachedConn) return cachedConn;
-  if (cachedPromise) {
-    cachedConn = await cachedPromise;
-    return cachedConn;
+  if (cache.conn) return cache.conn;
+
+  if (!cache.promise) {
+    cache.promise = getMongoUri()
+      .then(uri =>
+        mongoose.connect(uri, {
+          bufferCommands: false,
+          maxPoolSize: 10,
+          // Open a few sockets up front so the first queries of a request don't
+          // each pay the ~90ms cost of growing the pool on demand.
+          minPoolSize: 2,
+          serverSelectionTimeoutMS: 5000,
+        })
+      )
+      .catch(error => {
+        // Don't cache a rejected promise — the next request should retry.
+        cache.promise = null;
+        throw error;
+      });
   }
 
-  const uri = await getMongoUri();
-
-  cachedPromise = mongoose.connect(uri, {
-    bufferCommands: false,
-    maxPoolSize: 10,
-    serverSelectionTimeoutMS: 5000,
-  });
-  cachedConn = await cachedPromise;
-  return cachedConn;
+  cache.conn = await cache.promise;
+  return cache.conn;
 }
 
 async function getMongoUri(): Promise<string> {
@@ -50,11 +69,10 @@ async function getMongoUri(): Promise<string> {
     const { MongoMemoryServer } = await import('mongodb-memory-server');
 
     // Reuse the same server across hot-reloads
-    const g = globalThis as GlobalWithMongoMemoryServer;
-    if (!g._mongoMemoryServer) {
-      g._mongoMemoryServer = await MongoMemoryServer.create();
+    if (!globalWithMongo._mongoMemoryServer) {
+      globalWithMongo._mongoMemoryServer = await MongoMemoryServer.create();
     }
-    return g._mongoMemoryServer.getUri();
+    return globalWithMongo._mongoMemoryServer.getUri();
   }
 
   throw new Error('MONGODB_URI must be set in production');

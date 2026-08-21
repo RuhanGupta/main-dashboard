@@ -6,7 +6,6 @@ const SubtaskSchema = new Schema({
   status: { type: String, enum: ['not_started', 'in_progress', 'completed', 'cancelled'], default: 'not_started' },
   completed: { type: Boolean, default: false },
   notes: String,
-  googleTaskId: String,
 });
 
 const BodyGoalSchema = new Schema({
@@ -16,7 +15,8 @@ const BodyGoalSchema = new Schema({
   status: { type: String, enum: ['not_started', 'in_progress', 'completed', 'cancelled'], default: 'not_started' },
   dueDate: Date,
   subtasks: [SubtaskSchema],
-  googleTaskId: String,
 }, { timestamps: true });
+
+BodyGoalSchema.index({ userId: 1, dueDate: 1 });
 
 export const BodyGoal = models.BodyGoal ?? model('BodyGoal', BodyGoalSchema);

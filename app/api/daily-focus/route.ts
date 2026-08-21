@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
 import { DailyFocus } from '@/models/DailyFocus';
-import { requireCurrentUser } from '@/lib/api-helpers';
+import { readJsonBody, requireCurrentUser } from '@/lib/api-helpers';
 import type { DailyFocusSourceType, IDailyFocusItem } from '@/types';
 
 export async function GET() {
@@ -19,19 +19,22 @@ export async function POST(req: NextRequest) {
   if (authResult.response) return authResult.response;
 
   await connectToDatabase();
+  const parsed = await readJsonBody<{
+    _id?: string;
+    sourceType: DailyFocusSourceType;
+    sourceId?: string;
+    parentId?: string;
+    title: string;
+    parentTitle?: string;
+    startDate?: string | null;
+    dueDate?: string | null;
+    addedAt?: string;
+    completed?: boolean;
+  }>(req);
+  if (parsed.response) return parsed.response;
+
   const { _id, sourceType, sourceId, parentId, title, parentTitle, startDate, dueDate, addedAt, completed } =
-    (await req.json()) as {
-      _id?: string;
-      sourceType: DailyFocusSourceType;
-      sourceId?: string;
-      parentId?: string;
-      title: string;
-      parentTitle?: string;
-      startDate?: string | null;
-      dueDate?: string | null;
-      addedAt?: string;
-      completed?: boolean;
-    };
+    parsed.body;
 
   if (!title?.trim()) {
     return NextResponse.json({ error: 'Title is required' }, { status: 400 });

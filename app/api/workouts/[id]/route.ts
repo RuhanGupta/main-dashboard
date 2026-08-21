@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { Workout } from '@/models/Workout';
-import { removeClientManagedFields, requireCurrentUser } from '@/lib/api-helpers';
+import {
+  readJsonBody,
+  removeClientManagedFields,
+  requireCurrentUser,
+} from '@/lib/api-helpers';
 
 type WorkoutBody = {
   _id?: unknown;
   userId?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
-  googleTaskId?: unknown;
   [key: string]: unknown;
 };
 
@@ -18,7 +21,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   await connectToDatabase();
   const { id } = await params;
-  const workout = await Workout.findOne({ _id: id, userId: authResult.user.id });
+  const workout = await Workout.findOne({ _id: id, userId: authResult.user.id }).lean();
   if (!workout) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(workout);
 }
@@ -29,7 +32,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   await connectToDatabase();
   const { id } = await params;
-  const body = (await req.json()) as WorkoutBody;
+  const parsed_body = await readJsonBody<WorkoutBody>(req);
+  if (parsed_body.response) return parsed_body.response;
+  const body = parsed_body.body;
   removeClientManagedFields(body);
   const workout = await Workout.findOneAndUpdate(
     { _id: id, userId: authResult.user.id },

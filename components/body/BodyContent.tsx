@@ -4,10 +4,11 @@ import { Dumbbell, Target, Flame } from 'lucide-react';
 import { WorkoutPlanner } from './WorkoutPlanner';
 import { HabitTracker } from './HabitTracker';
 import { BodyGoals } from './BodyGoals';
+import type { IWorkout } from '@/types';
 
 type Tab = 'workouts' | 'habits' | 'goals';
 
-export function BodyContent() {
+export function BodyContent({ initialWorkouts = [] }: { initialWorkouts?: IWorkout[] }) {
   const [tab, setTab] = useState<Tab>('workouts');
 
   const tabs: { key: Tab; label: string; icon: typeof Dumbbell }[] = [
@@ -48,7 +49,7 @@ export function BodyContent() {
       </div>
 
       <div key={tab} className="animate-fade-up">
-        {tab === 'workouts' && <WorkoutPlanner />}
+        {tab === 'workouts' && <WorkoutPlanner initialWorkouts={initialWorkouts} />}
         {tab === 'habits' && <HabitTracker />}
         {tab === 'goals' && <BodyGoals />}
       </div>

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { AcademicRecurringTask } from '@/models/AcademicRecurringTask';
-import { requireCurrentUser } from '@/lib/api-helpers';
+import {
+  readJsonBody,
+  requireCurrentUser,
+} from '@/lib/api-helpers';
 
 type CompletionStatus = 'not_started' | 'in_progress' | 'completed';
 
@@ -24,7 +27,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   await connectToDatabase();
   const { id } = await params;
-  const body = (await req.json()) as CompletionBody;
+  const parsed_body = await readJsonBody<CompletionBody>(req);
+  if (parsed_body.response) return parsed_body.response;
+  const body = parsed_body.body;
 
   if (!body.date || !body.status) {
     return NextResponse.json({ error: 'date and status are required' }, { status: 400 });
